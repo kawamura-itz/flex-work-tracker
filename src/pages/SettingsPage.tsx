@@ -224,8 +224,8 @@ export function SettingsPage() {
             onChange={(e) => set('breakMinutes', e.target.value)}
           />
           <p className="hint" style={{ marginTop: 6, marginBottom: 0 }}>
-            開始〜終了を1本で入力したとき、在社時間からこの休憩を差し引いて実働を出します。
-            時間帯を分けて入力した場合は、間が休憩とみなされます。
+            勤務日の実働から毎日この昼休みを差し引きます。中抜け（外出・離席）はこれとは別で、
+            入力画面で時間帯を分けるとその間が除外されます（半休の日は昼休みを引きません）。
           </p>
         </div>
 

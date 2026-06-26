@@ -36,14 +36,14 @@ export function classifyDay(
 
 /**
  * Net worked minutes from time segments (実働).
- * A single segment is the in-to-out span and includes the break, so we subtract
- * `breakMinutes`. When the day is split into multiple segments, the gaps between
- * them are the breaks, so no extra deduction is applied.
+ * The segments are in-office spans (lunch included). `breakMinutes` is the fixed
+ * lunch break and is always subtracted. 中抜け (stepping out) is a different
+ * thing: enter it as a gap between two segments — that gap is excluded because
+ * we only sum the spans, and the lunch is still deducted on top.
  */
 export function deriveTotalMinutes(segments: Segment[], breakMinutes: number): number {
   const gross = segments.reduce((sum, s) => sum + segmentMinutes(s.start, s.end), 0);
-  const deduction = segments.length === 1 ? breakMinutes : 0;
-  return Math.max(0, gross - deduction);
+  return Math.max(0, gross - breakMinutes);
 }
 
 /** Minutes a single day's record contributes toward the required total (§4.2). */

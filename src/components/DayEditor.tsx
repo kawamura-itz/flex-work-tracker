@@ -106,11 +106,14 @@ export function DayEditor({ date, onClose }: { date: string; onClose?: () => voi
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [date]);
 
+  // Half-day work has no lunch break; full work days deduct the fixed lunch.
+  const effectiveBreak = type === 'halfLeave' ? 0 : settings.breakMinutes;
+
   const previewMinutes = useMemo(() => {
     if (!HAS_SEGMENTS.includes(type)) return 0;
     if (method === 'total') return Math.round(parseFloat(totalHours || '0') * 60);
-    return deriveTotalMinutes(pairsToSegments(date, pairs), settings.breakMinutes);
-  }, [type, method, totalHours, pairs, date, settings.breakMinutes]);
+    return deriveTotalMinutes(pairsToSegments(date, pairs), effectiveBreak);
+  }, [type, method, totalHours, pairs, date, effectiveBreak]);
 
   // Contribution this record would make, and its ± impact vs the standard day.
   const contribution = useMemo(() => {
@@ -140,7 +143,7 @@ export function DayEditor({ date, onClose }: { date: string; onClose?: () => voi
         segments = [{ start: `${date}T00:00:00`, end: `${date}T00:00:00` }];
       } else {
         segments = pairsToSegments(date, pairs);
-        totalMinutes = deriveTotalMinutes(segments, settings.breakMinutes);
+        totalMinutes = deriveTotalMinutes(segments, effectiveBreak);
       }
     }
     const record: DayRecord = {
@@ -265,7 +268,7 @@ export function DayEditor({ date, onClose }: { date: string; onClose?: () => voi
                 ＋ 時間帯を追加
               </button>
               <p className="hint" style={{ marginTop: 8, marginBottom: 0 }}>
-                昼休みや中抜けで勤務が分かれるときに追加します。
+                中抜け（外出・離席）があるときに時間帯を分けます。昼休みは自動で差し引かれるので分ける必要はありません。
               </p>
             </div>
           ) : (
@@ -283,9 +286,10 @@ export function DayEditor({ date, onClose }: { date: string; onClose?: () => voi
 
           <p className="hint">
             この日の実働: <b>{fmtHM(previewMinutes)}</b>
-            {method === 'time' && pairs.length === 1 && settings.breakMinutes > 0 &&
-              `（在社時間から休憩${settings.breakMinutes}分を差引）`}
-            {method === 'time' && pairs.length > 1 && '（時間帯の間を休憩とみなします）'}
+            {method === 'time' && effectiveBreak > 0 && `（昼休み${effectiveBreak}分を差引`}
+            {method === 'time' && effectiveBreak > 0 && pairs.length > 1 && '、中抜けは除外'}
+            {method === 'time' && effectiveBreak > 0 && '）'}
+            {method === 'time' && effectiveBreak === 0 && pairs.length > 1 && '（中抜けは除外）'}
           </p>
         </>
       )}

@@ -25,14 +25,15 @@ function work(date: string, minutes: number): DayRecord {
 describe('deriveTotalMinutes', () => {
   const seg = (start: string, end: string) => ({ start, end });
 
-  it('a single span subtracts the break (in-to-out includes lunch)', () => {
+  it('a single span subtracts the lunch break (in-to-out includes lunch)', () => {
     const segs = [seg('2026-06-01T09:00', '2026-06-01T18:00')]; // 9h gross
     expect(deriveTotalMinutes(segs, 60)).toBe(8 * 60);
   });
 
-  it('multiple segments are net (gaps are the breaks, no extra deduction)', () => {
-    const segs = [seg('2026-06-01T09:00', '2026-06-01T12:00'), seg('2026-06-01T13:00', '2026-06-01T18:00')];
-    expect(deriveTotalMinutes(segs, 60)).toBe(8 * 60); // 3h + 5h, no deduction
+  it('lunch is still deducted with multiple segments; the gap (中抜け) is excluded', () => {
+    // 5h + 3h = 8h in-office; gap 14:00-15:00 is 中抜け (excluded); lunch still −60
+    const segs = [seg('2026-06-01T09:00', '2026-06-01T14:00'), seg('2026-06-01T15:00', '2026-06-01T18:00')];
+    expect(deriveTotalMinutes(segs, 60)).toBe(7 * 60);
   });
 
   it('break of 0 means no deduction', () => {
