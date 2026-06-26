@@ -248,6 +248,10 @@ body {
 .btn:active {
   transform: scale(0.99);
 }
+.btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
 .btn--stop {
   background: var(--shortfall);
 }
@@ -538,11 +542,12 @@ body {
   font-variant-numeric: tabular-nums;
 }
 .cal-v {
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   font-weight: 700;
   align-self: stretch;
   text-align: right;
   white-space: nowrap;
+  color: var(--ink-soft);
 }
 .cal-v.pos {
   color: var(--surplus);
@@ -550,69 +555,15 @@ body {
 .cal-v.neg {
   color: var(--shortfall);
 }
-.cal-v.warn {
-  color: #c64a4a;
-}
-/* status backgrounds */
-.cal-cell.k-assumed {
-  background: #f1f6ff;
-}
-.cal-cell.k-record {
-  background: #fff;
-  border-color: #c9d6ea;
-}
-.cal-cell.k-unconfirmed {
-  background: var(--shortfall-soft);
-  border-color: #f0b6b6;
-}
-.cal-cell.k-forecast {
-  background: #fafbfd;
-}
 .cal-cell.is-holiday {
   background: #f3f4f7;
 }
 .cal-cell.is-holiday .cal-d {
-  color: #c08;
   color: #cf8a8a;
 }
 .cal-cell.is-today {
   outline: 2px solid var(--accent);
   outline-offset: -2px;
-}
-
-.cal-legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 12px;
-  font-size: 0.72rem;
-  color: var(--ink-soft);
-}
-.cal-legend span {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-}
-.cal-legend .dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 4px;
-  display: inline-block;
-  border: 1px solid var(--line);
-}
-.cal-legend .dot.k-assumed {
-  background: #f1f6ff;
-}
-.cal-legend .dot.k-record {
-  background: #fff;
-  border-color: #c9d6ea;
-}
-.cal-legend .dot.k-unconfirmed {
-  background: var(--shortfall-soft);
-  border-color: #f0b6b6;
-}
-.cal-legend .dot.k-forecast {
-  background: #fafbfd;
 }
 
 /* --- Modal & day editor ----------------------------------------------- */

@@ -25,29 +25,28 @@ function work(date: string, minutes: number): DayRecord {
 describe('deriveTotalMinutes', () => {
   const seg = (start: string, end: string) => ({ start, end });
 
-  it('sums segment durations in gap mode (no deduction)', () => {
-    const segs = [seg('2026-06-01T09:00', '2026-06-01T12:00'), seg('2026-06-01T13:00', '2026-06-01T18:00')];
-    expect(deriveTotalMinutes(segs, 'gap')).toBe(8 * 60);
-  });
-
-  it('deducts 60m over 8h in auto-deduct mode', () => {
+  it('a single span subtracts the break (in-to-out includes lunch)', () => {
     const segs = [seg('2026-06-01T09:00', '2026-06-01T18:00')]; // 9h gross
-    expect(deriveTotalMinutes(segs, 'auto-deduct')).toBe(9 * 60 - 60);
+    expect(deriveTotalMinutes(segs, 60)).toBe(8 * 60);
   });
 
-  it('deducts 45m over 6h but not over 8h', () => {
-    const segs = [seg('2026-06-01T09:00', '2026-06-01T16:00')]; // 7h gross
-    expect(deriveTotalMinutes(segs, 'auto-deduct')).toBe(7 * 60 - 45);
+  it('multiple segments are net (gaps are the breaks, no extra deduction)', () => {
+    const segs = [seg('2026-06-01T09:00', '2026-06-01T12:00'), seg('2026-06-01T13:00', '2026-06-01T18:00')];
+    expect(deriveTotalMinutes(segs, 60)).toBe(8 * 60); // 3h + 5h, no deduction
+  });
+
+  it('break of 0 means no deduction', () => {
+    const segs = [seg('2026-06-01T09:00', '2026-06-01T16:30')]; // 7.5h
+    expect(deriveTotalMinutes(segs, 0)).toBe(7 * 60 + 30);
   });
 
   it('handles overnight segments via date-bearing datetimes', () => {
-    const segs = [seg('2026-06-01T22:00', '2026-06-02T02:00')]; // 4h across midnight
-    expect(deriveTotalMinutes(segs, 'gap')).toBe(4 * 60);
+    const segs = [seg('2026-06-01T22:00', '2026-06-02T02:30')]; // 4.5h across midnight
+    expect(deriveTotalMinutes(segs, 30)).toBe(4 * 60); // 4.5h - 30m
   });
 
-  it('ignores a running (open) segment', () => {
-    const segs = [{ start: '2026-06-01T09:00', end: null }];
-    expect(deriveTotalMinutes(segs, 'gap')).toBe(0);
+  it('never goes negative and ignores a running (open) segment', () => {
+    expect(deriveTotalMinutes([{ start: '2026-06-01T09:00', end: null }], 60)).toBe(0);
   });
 });
 

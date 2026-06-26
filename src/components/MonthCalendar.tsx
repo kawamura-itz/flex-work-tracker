@@ -5,20 +5,15 @@ import { usePeriodDays } from '../hooks/useStatus';
 import { classifyDay, dayContributionMinutes, effectiveConfirmEnd } from '../domain/calc';
 import { isHoliday } from '../domain/holidays';
 import { eachDayStr } from '../domain/period';
-import { addDaysStr, fmtHM, hoursToMinutes, parseDay } from '../domain/time';
-import type { DayType } from '../types';
+import { addDaysStr, fmtSignedHM, hoursToMinutes, parseDay } from '../domain/time';
 
 const WD = ['日', '月', '火', '水', '木', '金', '土'];
-const TYPE_SHORT: Record<DayType, string> = {
-  work: '勤務',
-  paidLeave: '有給',
-  halfLeave: '半休',
-  holiday: '休',
-  adjustOff: '調整',
-  absence: '欠勤',
-};
 
-/** Full-period calendar grid. Tapping a day calls onSelect(date). */
+/**
+ * Full-period calendar grid. Every working day shows its ± vs the standard day
+ * (±0 when on track), coloured only when it deviates. Holidays are blank.
+ * Tapping a day calls onSelect(date).
+ */
 export function MonthCalendar({ onSelect }: { onSelect: (date: string) => void }) {
   const { settings, holidayCtx, today, period } = useApp();
   const days = usePeriodDays();
@@ -27,7 +22,6 @@ export function MonthCalendar({ onSelect }: { onSelect: (date: string) => void }
     const byDate = new Map(days.map((d) => [d.date, d]));
     const confEnd = effectiveConfirmEnd(settings, today);
     const stdMin = hoursToMinutes(settings.dailyStandardHours);
-    // Pad to whole weeks (Sun..Sat) covering the period.
     const gridStart = addDaysStr(period.startDate, -getDay(parseDay(period.startDate)));
     const gridEnd = addDaysStr(period.endDate, 6 - getDay(parseDay(period.endDate)));
     return { cells: eachDayStr(gridStart, gridEnd), byDate, confEnd, stdMin };
@@ -52,42 +46,29 @@ export function MonthCalendar({ onSelect }: { onSelect: (date: string) => void }
           const kind = classifyDay(date, !!rec, holiday, today, confEnd);
           const contribution = rec
             ? dayContributionMinutes(rec, settings)
-            : kind === 'assumed'
+            : kind === 'assumed' || kind === 'forecast'
               ? stdMin
-              : 0;
-          const delta = contribution - (holiday ? 0 : stdMin);
-          const dnum = format(parseDay(date), 'd');
+              : 0; // unconfirmed (assumption off)
 
-          // Recorded days show worked hours (or a type tag); colour only when
-          // the day deviates from standard (±). On-standard days stay neutral.
           let label = '';
-          let labelTone = '';
-          if (kind === 'record') {
-            label = rec!.type === 'work' ? fmtHM(contribution) : TYPE_SHORT[rec!.type];
-            labelTone = delta > 0 ? 'pos' : delta < 0 ? 'neg' : '';
-          } else if (kind === 'unconfirmed') {
-            label = '未確定';
-            labelTone = 'warn';
+          let tone = 'zero';
+          if (!holiday) {
+            const delta = contribution - stdMin;
+            label = fmtSignedHM(delta);
+            tone = delta > 0 ? 'pos' : delta < 0 ? 'neg' : 'zero';
           }
 
           return (
             <button
               key={date}
-              className={`cal-cell k-${kind} ${date === today ? 'is-today' : ''} ${holiday ? 'is-holiday' : ''}`}
+              className={`cal-cell ${date === today ? 'is-today' : ''} ${holiday ? 'is-holiday' : ''}`}
               onClick={() => onSelect(date)}
             >
-              <span className="cal-d">{dnum}</span>
-              {label && <span className={`cal-v ${labelTone}`}>{label}</span>}
+              <span className="cal-d">{format(parseDay(date), 'd')}</span>
+              {label && <span className={`cal-v ${tone}`}>{label}</span>}
             </button>
           );
         })}
-      </div>
-
-      <div className="cal-legend">
-        <span><i className="dot k-assumed" />みなし</span>
-        <span><i className="dot k-record" />記録</span>
-        <span><i className="dot k-unconfirmed" />未確定</span>
-        <span><i className="dot k-forecast" />見込み</span>
       </div>
     </div>
   );

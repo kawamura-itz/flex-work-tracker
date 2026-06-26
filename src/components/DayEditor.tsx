@@ -34,10 +34,9 @@ function addToTime(time: string, minutes: number): string {
   return `${pad(Math.floor(total / 60))}:${pad(total % 60)}`;
 }
 
-/** A standard-day pair derived from the configured start time and hours. */
+/** A standard-day pair: a single in-to-out span that includes the break. */
 function standardPair(settings: Settings): TimePair {
-  const stdMin = hoursToMinutes(settings.dailyStandardHours);
-  const span = stdMin + (settings.breakHandling === 'auto-deduct' ? 60 : 0);
+  const span = hoursToMinutes(settings.dailyStandardHours) + settings.breakMinutes;
   return { start: settings.workStartTime, end: addToTime(settings.workStartTime, span) };
 }
 
@@ -110,8 +109,8 @@ export function DayEditor({ date, onClose }: { date: string; onClose?: () => voi
   const previewMinutes = useMemo(() => {
     if (!HAS_SEGMENTS.includes(type)) return 0;
     if (method === 'total') return Math.round(parseFloat(totalHours || '0') * 60);
-    return deriveTotalMinutes(pairsToSegments(date, pairs), settings.breakHandling);
-  }, [type, method, totalHours, pairs, date, settings.breakHandling]);
+    return deriveTotalMinutes(pairsToSegments(date, pairs), settings.breakMinutes);
+  }, [type, method, totalHours, pairs, date, settings.breakMinutes]);
 
   // Contribution this record would make, and its ± impact vs the standard day.
   const contribution = useMemo(() => {
@@ -141,7 +140,7 @@ export function DayEditor({ date, onClose }: { date: string; onClose?: () => voi
         segments = [{ start: `${date}T00:00:00`, end: `${date}T00:00:00` }];
       } else {
         segments = pairsToSegments(date, pairs);
-        totalMinutes = deriveTotalMinutes(segments, settings.breakHandling);
+        totalMinutes = deriveTotalMinutes(segments, settings.breakMinutes);
       }
     }
     const record: DayRecord = {
@@ -284,7 +283,9 @@ export function DayEditor({ date, onClose }: { date: string; onClose?: () => voi
 
           <p className="hint">
             この日の実働: <b>{fmtHM(previewMinutes)}</b>
-            {method === 'time' && settings.breakHandling === 'auto-deduct' && '（法定休憩を自動控除）'}
+            {method === 'time' && pairs.length === 1 && settings.breakMinutes > 0 &&
+              `（在社時間から休憩${settings.breakMinutes}分を差引）`}
+            {method === 'time' && pairs.length > 1 && '（時間帯の間を休憩とみなします）'}
           </p>
         </>
       )}

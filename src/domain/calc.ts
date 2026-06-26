@@ -1,8 +1,8 @@
 // Core calculation engine. See requirements §4. All values in minutes.
-import type { BreakHandling, DayRecord, Segment, Settings } from '../types';
+import type { DayRecord, Segment, Settings } from '../types';
 import { isHoliday, type HolidayContext } from './holidays';
 import { eachDayStr, type PeriodRange } from './period';
-import { addDaysStr, hoursToMinutes, segmentMinutes, statutoryBreakMinutes } from './time';
+import { addDaysStr, hoursToMinutes, segmentMinutes } from './time';
 
 /**
  * Up to which date empty past weekdays are assumed standard (みなし).
@@ -35,15 +35,15 @@ export function classifyDay(
 }
 
 /**
- * Net worked minutes derived from segments, honouring break handling.
- * Use for 'timer' and 'time' input methods. ('total' stores its value directly.)
+ * Net worked minutes from time segments (実働).
+ * A single segment is the in-to-out span and includes the break, so we subtract
+ * `breakMinutes`. When the day is split into multiple segments, the gaps between
+ * them are the breaks, so no extra deduction is applied.
  */
-export function deriveTotalMinutes(segments: Segment[], breakHandling: BreakHandling): number {
+export function deriveTotalMinutes(segments: Segment[], breakMinutes: number): number {
   const gross = segments.reduce((sum, s) => sum + segmentMinutes(s.start, s.end), 0);
-  if (breakHandling === 'auto-deduct') {
-    return Math.max(0, gross - statutoryBreakMinutes(gross));
-  }
-  return gross;
+  const deduction = segments.length === 1 ? breakMinutes : 0;
+  return Math.max(0, gross - deduction);
 }
 
 /** Minutes a single day's record contributes toward the required total (§4.2). */

@@ -5,9 +5,6 @@
 /** How the monthly required hours are determined. */
 export type RequiredHoursMode = 'auto' | 'manual';
 
-/** How breaks are accounted for when deriving totalMinutes from segments. */
-export type BreakHandling = 'auto-deduct' | 'gap';
-
 /** Input method for a day's record. */
 export type InputMethod = 'timer' | 'time' | 'total';
 
@@ -39,7 +36,12 @@ export interface Settings {
   };
   /** 有給1日のみなし時間（時間）。通常は dailyStandardHours と同じ。 */
   paidLeaveHours: number;
-  breakHandling: BreakHandling;
+  /**
+   * 昼休みなどの休憩（分）。在社時間（開始〜終了の1本）からこの分を差し引いて
+   * 実働を出す。時間帯を複数に分けて入力した場合は、間が休憩とみなされるので
+   * この控除は行わない。0 なら控除なし。
+   */
+  breakMinutes: number;
   defaultInputMethod: InputMethod;
   /** 既定の勤務開始時刻（'HH:mm'）。入力時の初期値に使う。 */
   workStartTime: string;
@@ -104,7 +106,7 @@ export const DEFAULT_SETTINGS: Settings = {
   periodStartDay: 1,
   holidayRule: { saturday: true, sunday: true, nationalHoliday: true },
   paidLeaveHours: 8,
-  breakHandling: 'gap',
+  breakMinutes: 60,
   defaultInputMethod: 'time',
   workStartTime: '09:00',
   assumeStandardForElapsed: true,

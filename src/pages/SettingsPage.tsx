@@ -16,7 +16,6 @@ import { usePeriodDays } from '../hooks/useStatus';
 import { parseDay, todayStr } from '../domain/time';
 import type {
   BackupPayload,
-  BreakHandling,
   HolidayOverride,
   InputMethod,
   Period,
@@ -33,7 +32,7 @@ interface Draft {
   manualRequiredHours: string;
   periodStartDay: string;
   paidLeaveHours: string;
-  breakHandling: BreakHandling;
+  breakMinutes: string;
   defaultInputMethod: InputMethod;
   workStartTime: string;
   saturday: boolean;
@@ -49,7 +48,7 @@ function fromSettings(s: Settings): Draft {
     manualRequiredHours: s.manualRequiredHours == null ? '' : String(s.manualRequiredHours),
     periodStartDay: String(s.periodStartDay),
     paidLeaveHours: String(s.paidLeaveHours),
-    breakHandling: s.breakHandling,
+    breakMinutes: String(s.breakMinutes),
     defaultInputMethod: s.defaultInputMethod === 'timer' ? 'time' : s.defaultInputMethod,
     workStartTime: s.workStartTime,
     saturday: s.holidayRule.saturday,
@@ -73,6 +72,7 @@ export function SettingsPage() {
 
   const [draft, setDraft] = useState<Draft>(() => fromSettings(settings));
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => setDraft((d) => ({ ...d, [k]: v }));
+  const dirty = JSON.stringify(draft) !== JSON.stringify(fromSettings(settings));
 
   const [ovDate, setOvDate] = useState(today);
   const [ovType, setOvType] = useState<'add' | 'remove'>('add');
@@ -85,7 +85,7 @@ export function SettingsPage() {
       manualRequiredHours: draft.manualRequiredHours === '' ? null : num(draft.manualRequiredHours, 0),
       periodStartDay: Math.min(28, Math.max(1, Math.round(num(draft.periodStartDay, 1)))),
       paidLeaveHours: num(draft.paidLeaveHours, settings.paidLeaveHours),
-      breakHandling: draft.breakHandling,
+      breakMinutes: Math.max(0, Math.round(num(draft.breakMinutes, settings.breakMinutes))),
       defaultInputMethod: draft.defaultInputMethod,
       workStartTime: draft.workStartTime,
       holidayRule: {
@@ -215,14 +215,18 @@ export function SettingsPage() {
         </div>
 
         <div className="field">
-          <label>休憩の扱い</label>
-          <select
-            value={draft.breakHandling}
-            onChange={(e) => set('breakHandling', e.target.value as BreakHandling)}
-          >
-            <option value="gap">時間帯の間を休憩とする（自動控除なし）</option>
-            <option value="auto-deduct">法定休憩を自動控除（6h超45分 / 8h超60分）</option>
-          </select>
+          <label>休憩（昼休み）の時間（分）</label>
+          <input
+            type="number"
+            step="5"
+            min="0"
+            value={draft.breakMinutes}
+            onChange={(e) => set('breakMinutes', e.target.value)}
+          />
+          <p className="hint" style={{ marginTop: 6, marginBottom: 0 }}>
+            開始〜終了を1本で入力したとき、在社時間からこの休憩を差し引いて実働を出します。
+            時間帯を分けて入力した場合は、間が休憩とみなされます。
+          </p>
         </div>
 
         <div className="field">
@@ -262,8 +266,13 @@ export function SettingsPage() {
           </label>
         ))}
 
-        <button className="btn" style={{ marginTop: 8 }} onClick={() => void saveSettingsDraft()}>
-          設定を保存
+        <button
+          className="btn"
+          style={{ marginTop: 8 }}
+          disabled={!dirty}
+          onClick={() => void saveSettingsDraft()}
+        >
+          {dirty ? '変更を保存' : '保存済み'}
         </button>
       </div>
 

@@ -35,13 +35,6 @@ export function segmentMinutes(start: string, end: string | null): number {
   return Math.max(0, differenceInMinutes(parseISO(end), parseISO(start)));
 }
 
-/** Statutory break deducted from gross worked minutes (auto-deduct mode). */
-export function statutoryBreakMinutes(grossMinutes: number): number {
-  if (grossMinutes > 8 * 60) return 60;
-  if (grossMinutes > 6 * 60) return 45;
-  return 0;
-}
-
 /**
  * Format minutes as a compact "8h30m" / "8h" / "30m" string.
  * Negative values keep the sign.
