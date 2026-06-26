@@ -138,13 +138,9 @@ describe('effectiveConfirmEnd', () => {
     const s = { ...noHolidays, assumeStandardForElapsed: false };
     expect(effectiveConfirmEnd(s, '2026-06-10')).toBeNull();
   });
-  it('defaults to yesterday when no cursor is set', () => {
-    const s = { ...noHolidays, assumeStandardForElapsed: true, confirmedThrough: null };
+  it('returns yesterday when the assumption is on', () => {
+    const s = { ...noHolidays, assumeStandardForElapsed: true };
     expect(effectiveConfirmEnd(s, '2026-06-10')).toBe('2026-06-09');
-  });
-  it('caps an explicit future cursor at today', () => {
-    const s = { ...noHolidays, assumeStandardForElapsed: true, confirmedThrough: '2026-06-15' };
-    expect(effectiveConfirmEnd(s, '2026-06-10')).toBe('2026-06-10');
   });
 });
 

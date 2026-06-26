@@ -5,8 +5,7 @@ import { deleteDay, getDay, putDay } from '../db';
 import { deriveTotalMinutes } from '../domain/calc';
 import { isHoliday } from '../domain/holidays';
 import { fmtHM, fmtSignedHM, hoursToMinutes, parseDay } from '../domain/time';
-import { useTimer } from '../hooks/useTimer';
-import type { DayRecord, DayType, InputMethod, Segment } from '../types';
+import type { DayRecord, DayType, InputMethod, Segment, Settings } from '../types';
 
 const TYPE_LABELS: Record<DayType, string> = {
   work: '勤務',
@@ -24,12 +23,30 @@ interface TimePair {
   end: string; // 'HH:mm'
 }
 
-function segmentsToPairs(segments: Segment[]): TimePair[] {
+function pad(n: number): string {
+  return String(n).padStart(2, '0');
+}
+
+/** Add minutes to an 'HH:mm' string, clamped to within the day. */
+function addToTime(time: string, minutes: number): string {
+  const [h, m] = time.split(':').map(Number);
+  const total = Math.min(23 * 60 + 59, Math.max(0, h * 60 + m + minutes));
+  return `${pad(Math.floor(total / 60))}:${pad(total % 60)}`;
+}
+
+/** A standard-day pair derived from the configured start time and hours. */
+function standardPair(settings: Settings): TimePair {
+  const stdMin = hoursToMinutes(settings.dailyStandardHours);
+  const span = stdMin + (settings.breakHandling === 'auto-deduct' ? 60 : 0);
+  return { start: settings.workStartTime, end: addToTime(settings.workStartTime, span) };
+}
+
+function segmentsToPairs(segments: Segment[], fallbackStart: string): TimePair[] {
   return segments
     .filter((s) => s.end)
     .map((s) => ({
-      start: s.start.slice(11, 16) || '09:00',
-      end: (s.end ?? '').slice(11, 16) || '18:00',
+      start: s.start.slice(11, 16) || fallbackStart,
+      end: (s.end ?? '').slice(11, 16) || addToTime(fallbackStart, 480),
     }));
 }
 
@@ -49,22 +66,22 @@ function pairsToSegments(date: string, pairs: TimePair[]): Segment[] {
 
 /**
  * Editor for a single day. Reused both in the calendar modal (with onClose)
- * and as a full page (without). For "today" it embeds the work timer.
+ * and as a full page (without).
  */
 export function DayEditor({ date, onClose }: { date: string; onClose?: () => void }) {
-  const { settings, today, holidayCtx } = useApp();
-  const isToday = date === today;
+  const { settings, holidayCtx } = useApp();
   const holiday = isHoliday(date, settings, holidayCtx);
   const stdMin = hoursToMinutes(settings.dailyStandardHours);
   const baseStd = holiday ? 0 : stdMin; // standard contribution expected for this day
 
   const [type, setType] = useState<DayType>(holiday ? 'holiday' : 'work');
-  const [method, setMethod] = useState<InputMethod>(settings.defaultInputMethod === 'timer' ? 'time' : settings.defaultInputMethod);
-  const [pairs, setPairs] = useState<TimePair[]>([{ start: '09:00', end: '18:00' }]);
+  const [method, setMethod] = useState<InputMethod>(
+    settings.defaultInputMethod === 'timer' ? 'time' : settings.defaultInputMethod,
+  );
+  const [pairs, setPairs] = useState<TimePair[]>(() => [standardPair(settings)]);
   const [totalHours, setTotalHours] = useState<string>(String(settings.dailyStandardHours));
   const [note, setNote] = useState('');
   const [loaded, setLoaded] = useState(false);
-  const timer = useTimer();
 
   useEffect(() => {
     let active = true;
@@ -74,7 +91,7 @@ export function DayEditor({ date, onClose }: { date: string; onClose?: () => voi
       if (rec) {
         setType(rec.type);
         setMethod(rec.inputMethod === 'timer' ? 'time' : rec.inputMethod);
-        const p = segmentsToPairs(rec.segments);
+        const p = segmentsToPairs(rec.segments, settings.workStartTime);
         if (p.length > 0) setPairs(p);
         setTotalHours((rec.totalMinutes / 60).toString());
         setNote(rec.note ?? '');
@@ -162,23 +179,6 @@ export function DayEditor({ date, onClose }: { date: string; onClose?: () => voi
         )}
       </div>
 
-      {isToday && (
-        <div className="card timer" style={{ marginBottom: 14 }}>
-          <div className="card__label">今日の勤務タイマー</div>
-          <div className={`timer__elapsed ${timer.running ? 'running' : ''}`}>{fmtHM(timer.liveTotalMinutes)}</div>
-          {timer.running ? (
-            <button className="btn btn--stop" onClick={() => void timer.stop()}>
-              ■ 停止
-            </button>
-          ) : (
-            <button className="btn" onClick={() => void timer.start()}>
-              ▶ {(timer.record?.segments.length ?? 0) > 0 ? '再開' : '開始'}
-            </button>
-          )}
-          <p className="hint" style={{ marginBottom: 0 }}>タイマーは下の「勤務」記録に書き込まれます。</p>
-        </div>
-      )}
-
       <div className="impact-readout">
         <span>この日の過不足への影響</span>
         <b className={impactTone === 'surplus' ? 'surplus' : impactTone === 'shortfall' ? 'shortfall' : ''}>
@@ -242,21 +242,32 @@ export function DayEditor({ date, onClose }: { date: string; onClose?: () => voi
                       }
                     />
                   </div>
-                  <button
-                    className="btn btn--ghost btn--sm"
-                    onClick={() => setPairs((ps) => ps.filter((_, j) => j !== i))}
-                    disabled={pairs.length === 1}
-                  >
-                    削除
-                  </button>
+                  {pairs.length > 1 && (
+                    <button
+                      className="icon-btn"
+                      onClick={() => setPairs((ps) => ps.filter((_, j) => j !== i))}
+                      aria-label="この時間帯を削除"
+                    >
+                      ✕
+                    </button>
+                  )}
                 </div>
               ))}
               <button
                 className="btn btn--ghost btn--sm"
-                onClick={() => setPairs((ps) => [...ps, { start: '13:00', end: '18:00' }])}
+                onClick={() =>
+                  setPairs((ps) => {
+                    const last = ps[ps.length - 1];
+                    const start = addToTime(last.end, 60);
+                    return [...ps, { start, end: addToTime(start, 60) }];
+                  })
+                }
               >
-                ＋ セグメント追加（中休み）
+                ＋ 時間帯を追加
               </button>
+              <p className="hint" style={{ marginTop: 8, marginBottom: 0 }}>
+                昼休みや中抜けで勤務が分かれるときに追加します。
+              </p>
             </div>
           ) : (
             <div className="field">

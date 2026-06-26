@@ -41,7 +41,8 @@ export async function loadSettings(): Promise<Settings> {
   const row = await db.settings.get(SETTINGS_KEY);
   if (!row) return DEFAULT_SETTINGS;
   const { id: _id, ...rest } = row;
-  return rest;
+  // Merge with defaults so settings saved before a field existed still load.
+  return { ...DEFAULT_SETTINGS, ...rest };
 }
 
 export async function saveSettings(settings: Settings): Promise<void> {

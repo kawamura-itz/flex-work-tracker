@@ -9,7 +9,7 @@ import { useStatus } from '../hooks/useStatus';
 import { fmtHM, parseDay } from '../domain/time';
 
 export function MainPage() {
-  const { period, today, updateSettings } = useApp();
+  const { period } = useApp();
   const { status } = useStatus();
   const [editDate, setEditDate] = useState<string | null>(null);
 
@@ -19,20 +19,6 @@ export function MainPage() {
   return (
     <>
       <div className="period-label">清算期間 {periodLabel}</div>
-
-      {status.unconfirmedDays > 0 && (
-        <div className="notice">
-          <span>
-            未確定の平日が <b>{status.unconfirmedDays}日</b> あります（実績に未算入）。
-          </span>
-          <button
-            className="btn btn--ghost btn--sm"
-            onClick={() => void updateSettings({ confirmedThrough: today })}
-          >
-            今日まで所定で確定
-          </button>
-        </div>
-      )}
 
       <div className="home-grid">
         <aside className="home-side">
@@ -93,7 +79,7 @@ export function MainPage() {
 
         <main className="home-main">
           <div className="section-head" style={{ marginTop: 0 }}>
-            カレンダー（日付をタップで ± 入力 / 今日はタイマー）
+            カレンダー（日付をタップで入力・修正）
           </div>
           <MonthCalendar onSelect={setEditDate} />
         </main>

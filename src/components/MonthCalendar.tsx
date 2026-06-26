@@ -5,7 +5,7 @@ import { usePeriodDays } from '../hooks/useStatus';
 import { classifyDay, dayContributionMinutes, effectiveConfirmEnd } from '../domain/calc';
 import { isHoliday } from '../domain/holidays';
 import { eachDayStr } from '../domain/period';
-import { addDaysStr, fmtSignedHM, hoursToMinutes, parseDay } from '../domain/time';
+import { addDaysStr, fmtHM, hoursToMinutes, parseDay } from '../domain/time';
 import type { DayType } from '../types';
 
 const WD = ['日', '月', '火', '水', '木', '金', '土'];
@@ -58,16 +58,13 @@ export function MonthCalendar({ onSelect }: { onSelect: (date: string) => void }
           const delta = contribution - (holiday ? 0 : stdMin);
           const dnum = format(parseDay(date), 'd');
 
+          // Recorded days show worked hours (or a type tag); colour only when
+          // the day deviates from standard (±). On-standard days stay neutral.
           let label = '';
           let labelTone = '';
           if (kind === 'record') {
-            if (rec!.type === 'work') {
-              label = delta === 0 ? '±0' : fmtSignedHM(delta);
-              labelTone = delta > 0 ? 'pos' : delta < 0 ? 'neg' : '';
-            } else {
-              label = TYPE_SHORT[rec!.type];
-              labelTone = delta < 0 ? 'neg' : '';
-            }
+            label = rec!.type === 'work' ? fmtHM(contribution) : TYPE_SHORT[rec!.type];
+            labelTone = delta > 0 ? 'pos' : delta < 0 ? 'neg' : '';
           } else if (kind === 'unconfirmed') {
             label = '未確定';
             labelTone = 'warn';

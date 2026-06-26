@@ -6,10 +6,10 @@ import { SettingsPage } from './pages/SettingsPage';
 import { HistoryPage } from './pages/HistoryPage';
 
 const NAV = [
-  { to: '/', label: 'ホーム', ico: '📅', end: true },
-  { to: '/sim', label: '試算', ico: '🔮', end: false },
-  { to: '/history', label: '履歴', ico: '🗂️', end: false },
-  { to: '/settings', label: '設定', ico: '⚙️', end: false },
+  { to: '/', label: 'ホーム', end: true },
+  { to: '/sim', label: '試算', end: false },
+  { to: '/history', label: '履歴', end: false },
+  { to: '/settings', label: '設定', end: false },
 ];
 
 export function App() {
@@ -27,12 +27,10 @@ export function App() {
       </main>
       <nav className="nav">
         <div className="nav__brand">
-          <span className="nav__brand-ico">⚖️</span>
           <span className="nav__brand-text">フレックス<br />トラッカー</span>
         </div>
         {NAV.map((n) => (
           <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => (isActive ? 'active' : '')}>
-            <span className="ico">{n.ico}</span>
             <span className="nav__label">{n.label}</span>
           </NavLink>
         ))}

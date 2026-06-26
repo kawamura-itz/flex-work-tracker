@@ -1,6 +1,7 @@
 import { useEffect, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 
-/** Lightweight modal: backdrop click and Esc close it. */
+/** Lightweight modal rendered at <body> so the backdrop covers the full viewport. */
 export function Modal({ onClose, children }: { onClose: () => void; children: ReactNode }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -14,11 +15,12 @@ export function Modal({ onClose, children }: { onClose: () => void; children: Re
     };
   }, [onClose]);
 
-  return (
+  return createPortal(
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

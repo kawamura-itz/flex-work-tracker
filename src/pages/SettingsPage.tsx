@@ -13,8 +13,56 @@ import {
 } from '../db';
 import { computeStatus, effectiveConfirmEnd } from '../domain/calc';
 import { usePeriodDays } from '../hooks/useStatus';
-import { addDaysStr, parseDay, todayStr } from '../domain/time';
-import type { BackupPayload, HolidayOverride, Period } from '../types';
+import { parseDay, todayStr } from '../domain/time';
+import type {
+  BackupPayload,
+  BreakHandling,
+  HolidayOverride,
+  InputMethod,
+  Period,
+  RequiredHoursMode,
+  Settings,
+} from '../types';
+
+// Editable draft of the basic settings. Numbers are kept as strings so a field
+// can be cleared and retyped freely (no "0" prefix while typing). Committed on
+// the explicit 保存 button.
+interface Draft {
+  dailyStandardHours: string;
+  requiredHoursMode: RequiredHoursMode;
+  manualRequiredHours: string;
+  periodStartDay: string;
+  paidLeaveHours: string;
+  breakHandling: BreakHandling;
+  defaultInputMethod: InputMethod;
+  workStartTime: string;
+  saturday: boolean;
+  sunday: boolean;
+  nationalHoliday: boolean;
+  assumeStandardForElapsed: boolean;
+}
+
+function fromSettings(s: Settings): Draft {
+  return {
+    dailyStandardHours: String(s.dailyStandardHours),
+    requiredHoursMode: s.requiredHoursMode,
+    manualRequiredHours: s.manualRequiredHours == null ? '' : String(s.manualRequiredHours),
+    periodStartDay: String(s.periodStartDay),
+    paidLeaveHours: String(s.paidLeaveHours),
+    breakHandling: s.breakHandling,
+    defaultInputMethod: s.defaultInputMethod === 'timer' ? 'time' : s.defaultInputMethod,
+    workStartTime: s.workStartTime,
+    saturday: s.holidayRule.saturday,
+    sunday: s.holidayRule.sunday,
+    nationalHoliday: s.holidayRule.nationalHoliday,
+    assumeStandardForElapsed: s.assumeStandardForElapsed,
+  };
+}
+
+function num(v: string, fallback: number): number {
+  const n = parseFloat(v);
+  return Number.isFinite(n) ? n : fallback;
+}
 
 export function SettingsPage() {
   const { settings, updateSettings, holidayCtx, period, today } = useApp();
@@ -23,9 +71,32 @@ export function SettingsPage() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [msg, setMsg] = useState<string>('');
 
+  const [draft, setDraft] = useState<Draft>(() => fromSettings(settings));
+  const set = <K extends keyof Draft>(k: K, v: Draft[K]) => setDraft((d) => ({ ...d, [k]: v }));
+
   const [ovDate, setOvDate] = useState(today);
   const [ovType, setOvType] = useState<'add' | 'remove'>('add');
   const [ovLabel, setOvLabel] = useState('');
+
+  async function saveSettingsDraft() {
+    await updateSettings({
+      dailyStandardHours: num(draft.dailyStandardHours, settings.dailyStandardHours),
+      requiredHoursMode: draft.requiredHoursMode,
+      manualRequiredHours: draft.manualRequiredHours === '' ? null : num(draft.manualRequiredHours, 0),
+      periodStartDay: Math.min(28, Math.max(1, Math.round(num(draft.periodStartDay, 1)))),
+      paidLeaveHours: num(draft.paidLeaveHours, settings.paidLeaveHours),
+      breakHandling: draft.breakHandling,
+      defaultInputMethod: draft.defaultInputMethod,
+      workStartTime: draft.workStartTime,
+      holidayRule: {
+        saturday: draft.saturday,
+        sunday: draft.sunday,
+        nationalHoliday: draft.nationalHoliday,
+      },
+      assumeStandardForElapsed: draft.assumeStandardForElapsed,
+    });
+    setMsg('設定を保存しました。');
+  }
 
   async function addOverride() {
     const o: HolidayOverride = { date: ovDate, type: ovType, label: ovLabel || undefined };
@@ -90,31 +161,34 @@ export function SettingsPage() {
           <input
             type="number"
             step="0.25"
-            value={settings.dailyStandardHours}
-            onChange={(e) => void updateSettings({ dailyStandardHours: parseFloat(e.target.value) || 0 })}
+            value={draft.dailyStandardHours}
+            onChange={(e) => set('dailyStandardHours', e.target.value)}
           />
+        </div>
+
+        <div className="field">
+          <label>勤務開始時刻（入力の初期値）</label>
+          <input type="time" value={draft.workStartTime} onChange={(e) => set('workStartTime', e.target.value)} />
         </div>
 
         <div className="field">
           <label>月の必要時間</label>
           <select
-            value={settings.requiredHoursMode}
-            onChange={(e) => void updateSettings({ requiredHoursMode: e.target.value as 'auto' | 'manual' })}
+            value={draft.requiredHoursMode}
+            onChange={(e) => set('requiredHoursMode', e.target.value as RequiredHoursMode)}
           >
             <option value="auto">自動（所定時間 × 稼働日数）</option>
             <option value="manual">手動指定</option>
           </select>
         </div>
-        {settings.requiredHoursMode === 'manual' && (
+        {draft.requiredHoursMode === 'manual' && (
           <div className="field">
             <label>必要時間（時間）</label>
             <input
               type="number"
               step="1"
-              value={settings.manualRequiredHours ?? ''}
-              onChange={(e) =>
-                void updateSettings({ manualRequiredHours: e.target.value === '' ? null : parseFloat(e.target.value) })
-              }
+              value={draft.manualRequiredHours}
+              onChange={(e) => set('manualRequiredHours', e.target.value)}
             />
           </div>
         )}
@@ -125,10 +199,8 @@ export function SettingsPage() {
             type="number"
             min="1"
             max="28"
-            value={settings.periodStartDay}
-            onChange={(e) =>
-              void updateSettings({ periodStartDay: Math.min(28, Math.max(1, parseInt(e.target.value) || 1)) })
-            }
+            value={draft.periodStartDay}
+            onChange={(e) => set('periodStartDay', e.target.value)}
           />
         </div>
 
@@ -137,18 +209,18 @@ export function SettingsPage() {
           <input
             type="number"
             step="0.25"
-            value={settings.paidLeaveHours}
-            onChange={(e) => void updateSettings({ paidLeaveHours: parseFloat(e.target.value) || 0 })}
+            value={draft.paidLeaveHours}
+            onChange={(e) => set('paidLeaveHours', e.target.value)}
           />
         </div>
 
         <div className="field">
           <label>休憩の扱い</label>
           <select
-            value={settings.breakHandling}
-            onChange={(e) => void updateSettings({ breakHandling: e.target.value as 'auto-deduct' | 'gap' })}
+            value={draft.breakHandling}
+            onChange={(e) => set('breakHandling', e.target.value as BreakHandling)}
           >
-            <option value="gap">セグメントの間を休憩とする（自動控除なし）</option>
+            <option value="gap">時間帯の間を休憩とする（自動控除なし）</option>
             <option value="auto-deduct">法定休憩を自動控除（6h超45分 / 8h超60分）</option>
           </select>
         </div>
@@ -156,77 +228,43 @@ export function SettingsPage() {
         <div className="field">
           <label>既定の入力方式</label>
           <select
-            value={settings.defaultInputMethod}
-            onChange={(e) => void updateSettings({ defaultInputMethod: e.target.value as 'timer' | 'time' | 'total' })}
+            value={draft.defaultInputMethod}
+            onChange={(e) => set('defaultInputMethod', e.target.value as InputMethod)}
           >
-            <option value="timer">タイマー</option>
             <option value="time">時刻入力</option>
             <option value="total">合計入力</option>
           </select>
         </div>
-      </div>
 
-      <div className="section-head">勤務時間のみなし</div>
-      <div className="card">
-        <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0 10px' }}>
+        <div className="section-head" style={{ margin: '6px 0 6px' }}>勤務時間のみなし</div>
+        <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0 8px' }}>
           <span>未記録の過去平日を所定時間とみなす</span>
           <input
             type="checkbox"
-            checked={settings.assumeStandardForElapsed}
-            onChange={(e) => void updateSettings({ assumeStandardForElapsed: e.target.checked })}
+            checked={draft.assumeStandardForElapsed}
+            onChange={(e) => set('assumeStandardForElapsed', e.target.checked)}
           />
         </label>
         <p className="hint" style={{ marginTop: 0 }}>
           ONにすると、平日は黙っていれば所定時間はたらいた扱いになり、有給・欠勤・早退・残業など
-          「何かあった日」だけ記録すれば過不足がプラマイ動きます。
+          「何かあった日」だけ記録すれば過不足がプラマイ動きます。記録はいつでも編集できます（仮/確定の区別なし）。
         </p>
 
-        {settings.assumeStandardForElapsed && (
-          <>
-            <div className="field" style={{ marginTop: 6 }}>
-              <label>確定日（この日までの空欄平日をみなし算入）</label>
-              <input
-                type="date"
-                value={settings.confirmedThrough ?? addDaysStr(today, -1)}
-                max={today}
-                onChange={(e) => void updateSettings({ confirmedThrough: e.target.value || null })}
-              />
-            </div>
-            <div className="inline-fields" style={{ gap: 8 }}>
-              <button className="btn btn--ghost btn--sm" onClick={() => void updateSettings({ confirmedThrough: today })}>
-                今日まで確定
-              </button>
-              <button
-                className="btn btn--ghost btn--sm"
-                onClick={() => void updateSettings({ confirmedThrough: addDaysStr(today, -1) })}
-              >
-                昨日まで
-              </button>
-              <button className="btn btn--ghost btn--sm" onClick={() => void updateSettings({ confirmedThrough: null })}>
-                自動（昨日まで）
-              </button>
-            </div>
-            <p className="hint">
-              確定日より後〜今日より前の未記録平日は「未確定（0扱い）」となり、入力し忘れを警告します。
-            </p>
-          </>
-        )}
-      </div>
-
-      <div className="section-head">休日設定</div>
-      <div className="card">
-        {(['saturday', 'sunday', 'nationalHoliday'] as const).map((k) => (
+        <div className="section-head" style={{ margin: '6px 0 6px' }}>休日</div>
+        {([
+          ['saturday', '土曜を休日'],
+          ['sunday', '日曜を休日'],
+          ['nationalHoliday', '祝日を休日'],
+        ] as const).map(([k, label]) => (
           <label key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0' }}>
-            <span>{k === 'saturday' ? '土曜を休日' : k === 'sunday' ? '日曜を休日' : '祝日を休日'}</span>
-            <input
-              type="checkbox"
-              checked={settings.holidayRule[k]}
-              onChange={(e) =>
-                void updateSettings({ holidayRule: { ...settings.holidayRule, [k]: e.target.checked } })
-              }
-            />
+            <span>{label}</span>
+            <input type="checkbox" checked={draft[k]} onChange={(e) => set(k, e.target.checked)} />
           </label>
         ))}
+
+        <button className="btn" style={{ marginTop: 8 }} onClick={() => void saveSettingsDraft()}>
+          設定を保存
+        </button>
       </div>
 
       <div className="section-head">個別の休日（追加 / 解除）</div>

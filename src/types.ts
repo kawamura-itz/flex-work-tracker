@@ -41,14 +41,14 @@ export interface Settings {
   paidLeaveHours: number;
   breakHandling: BreakHandling;
   defaultInputMethod: InputMethod;
-  /** 未記録の過去平日を所定時間（みなし）として実績に算入するか。 */
-  assumeStandardForElapsed: boolean;
+  /** 既定の勤務開始時刻（'HH:mm'）。入力時の初期値に使う。 */
+  workStartTime: string;
   /**
-   * 「確定日」: この日以前の未記録平日だけを みなし算入する（'YYYY-MM-DD'）。
-   * null のときは「昨日まで」を自動の確定日として扱う。
-   * 確定日より後〜今日より前の未記録平日は「未確定（0扱い）」として警告する。
+   * 未記録の過去平日を所定時間（みなし）として実績に算入するか。
+   * ON のとき、昨日までの未記録平日は自動でみなし。今日・未来は見込み。
+   * 仮/確定の区別は設けず、記録はいつでも編集できる。
    */
-  confirmedThrough: string | null;
+  assumeStandardForElapsed: boolean;
 }
 
 /** A national holiday from the bundled Cabinet Office dataset. */
@@ -105,9 +105,9 @@ export const DEFAULT_SETTINGS: Settings = {
   holidayRule: { saturday: true, sunday: true, nationalHoliday: true },
   paidLeaveHours: 8,
   breakHandling: 'gap',
-  defaultInputMethod: 'timer',
+  defaultInputMethod: 'time',
+  workStartTime: '09:00',
   assumeStandardForElapsed: true,
-  confirmedThrough: null,
 };
 
 /** Shape of the full JSON export/import payload (§10). */

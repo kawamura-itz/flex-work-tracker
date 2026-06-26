@@ -397,8 +397,8 @@ body {
 .nav a {
   flex: 1;
   text-align: center;
-  padding: 10px 0 12px;
-  font-size: 0.68rem;
+  padding: 14px 0;
+  font-size: 0.82rem;
   color: var(--ink-soft);
   text-decoration: none;
 }

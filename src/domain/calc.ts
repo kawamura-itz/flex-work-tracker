@@ -5,15 +5,14 @@ import { eachDayStr, type PeriodRange } from './period';
 import { addDaysStr, hoursToMinutes, segmentMinutes, statutoryBreakMinutes } from './time';
 
 /**
- * The effective "confirmed through" date for the standard-hours assumption.
- * - assumption off            -> null (no みなし; empty past days count as 0)
- * - on, no explicit cursor    -> yesterday (auto: everything up to yesterday is みなし)
- * - on, explicit cursor       -> that date (capped at today)
+ * Up to which date empty past weekdays are assumed standard (みなし).
+ * - assumption off -> null (empty past days count as 0; log everything)
+ * - assumption on  -> yesterday (today & future are 見込み, not みなし)
+ * No tentative/confirmed split: records are editable at any time.
  */
 export function effectiveConfirmEnd(settings: Settings, today: string): string | null {
   if (!settings.assumeStandardForElapsed) return null;
-  const base = settings.confirmedThrough ?? addDaysStr(today, -1);
-  return base > today ? today : base;
+  return addDaysStr(today, -1);
 }
 
 /** Classification of a single day for display (history tagging). */
