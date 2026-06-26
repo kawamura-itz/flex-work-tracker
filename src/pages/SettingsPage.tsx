@@ -11,9 +11,9 @@ import {
   putPeriod,
   requestPersistentStorage,
 } from '../db';
-import { computeStatus } from '../domain/calc';
+import { computeStatus, effectiveConfirmEnd } from '../domain/calc';
 import { usePeriodDays } from '../hooks/useStatus';
-import { parseDay, todayStr } from '../domain/time';
+import { addDaysStr, parseDay, todayStr } from '../domain/time';
 import type { BackupPayload, HolidayOverride, Period } from '../types';
 
 export function SettingsPage() {
@@ -57,7 +57,8 @@ export function SettingsPage() {
   }
 
   async function closePeriod() {
-    const status = computeStatus({ settings, range: period, days, ctx: holidayCtx, today });
+    const confEnd = effectiveConfirmEnd(settings, today);
+    const status = computeStatus({ settings, range: period, days, ctx: holidayCtx, today, confEnd });
     const p: Period = {
       id: period.id,
       startDate: period.startDate,
@@ -163,6 +164,53 @@ export function SettingsPage() {
             <option value="total">合計入力</option>
           </select>
         </div>
+      </div>
+
+      <div className="section-head">勤務時間のみなし</div>
+      <div className="card">
+        <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0 10px' }}>
+          <span>未記録の過去平日を所定時間とみなす</span>
+          <input
+            type="checkbox"
+            checked={settings.assumeStandardForElapsed}
+            onChange={(e) => void updateSettings({ assumeStandardForElapsed: e.target.checked })}
+          />
+        </label>
+        <p className="hint" style={{ marginTop: 0 }}>
+          ONにすると、平日は黙っていれば所定時間はたらいた扱いになり、有給・欠勤・早退・残業など
+          「何かあった日」だけ記録すれば過不足がプラマイ動きます。
+        </p>
+
+        {settings.assumeStandardForElapsed && (
+          <>
+            <div className="field" style={{ marginTop: 6 }}>
+              <label>確定日（この日までの空欄平日をみなし算入）</label>
+              <input
+                type="date"
+                value={settings.confirmedThrough ?? addDaysStr(today, -1)}
+                max={today}
+                onChange={(e) => void updateSettings({ confirmedThrough: e.target.value || null })}
+              />
+            </div>
+            <div className="inline-fields" style={{ gap: 8 }}>
+              <button className="btn btn--ghost btn--sm" onClick={() => void updateSettings({ confirmedThrough: today })}>
+                今日まで確定
+              </button>
+              <button
+                className="btn btn--ghost btn--sm"
+                onClick={() => void updateSettings({ confirmedThrough: addDaysStr(today, -1) })}
+              >
+                昨日まで
+              </button>
+              <button className="btn btn--ghost btn--sm" onClick={() => void updateSettings({ confirmedThrough: null })}>
+                自動（昨日まで）
+              </button>
+            </div>
+            <p className="hint">
+              確定日より後〜今日より前の未記録平日は「未確定（0扱い）」となり、入力し忘れを警告します。
+            </p>
+          </>
+        )}
       </div>
 
       <div className="section-head">休日設定</div>

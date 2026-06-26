@@ -7,7 +7,7 @@ import { fmtHM } from '../domain/time';
 import { parseDay } from '../domain/time';
 
 export function MainPage() {
-  const { period } = useApp();
+  const { period, today, updateSettings } = useApp();
   const { status } = useStatus();
 
   const periodLabel = `${format(parseDay(period.startDate), 'M/d')} 〜 ${format(parseDay(period.endDate), 'M/d')}`;
@@ -17,6 +17,21 @@ export function MainPage() {
   return (
     <>
       <div className="period-label">清算期間 {periodLabel}</div>
+
+      {status.unconfirmedDays > 0 && (
+        <div className="notice">
+          <span>
+            未確定の平日が <b>{status.unconfirmedDays}日</b> あります（実績に未算入）。
+            所定どおりなら確定、違う日は記録してください。
+          </span>
+          <button
+            className="btn btn--ghost btn--sm"
+            onClick={() => void updateSettings({ confirmedThrough: today })}
+          >
+            今日まで所定で確定
+          </button>
+        </div>
+      )}
 
       <div className="main-grid">
         <section className="main-grid__primary">

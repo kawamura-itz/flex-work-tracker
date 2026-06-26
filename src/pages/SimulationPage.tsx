@@ -2,7 +2,7 @@ import { format } from 'date-fns';
 import { useMemo, useState } from 'react';
 import { useApp } from '../state/AppContext';
 import { usePeriodDays } from '../hooks/useStatus';
-import { applySimulation, computeStatus, type SimPlan } from '../domain/calc';
+import { applySimulation, computeStatus, effectiveConfirmEnd, type SimPlan } from '../domain/calc';
 import { isHoliday } from '../domain/holidays';
 import { eachDayStr } from '../domain/period';
 import { fmtHM, fmtSignedHM, parseDay } from '../domain/time';
@@ -39,9 +39,10 @@ export function SimulationPage() {
     return out;
   }, [plans]);
 
+  const confEnd = useMemo(() => effectiveConfirmEnd(settings, today), [settings, today]);
   const base = useMemo(
-    () => computeStatus({ settings, range: period, days, ctx: holidayCtx, today }),
-    [settings, period, days, holidayCtx, today],
+    () => computeStatus({ settings, range: period, days, ctx: holidayCtx, today, confEnd }),
+    [settings, period, days, holidayCtx, today, confEnd],
   );
   const sim = useMemo(
     () =>
@@ -51,8 +52,9 @@ export function SimulationPage() {
         days: applySimulation(days, simPlans),
         ctx: holidayCtx,
         today,
+        confEnd,
       }),
-    [settings, period, days, simPlans, holidayCtx, today],
+    [settings, period, days, simPlans, holidayCtx, today, confEnd],
   );
 
   function setPlan(date: string, patch: Partial<PlanState>) {

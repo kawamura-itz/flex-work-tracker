@@ -1,5 +1,5 @@
 // Time helpers. Business logic works in minutes; these convert and format.
-import { differenceInMinutes, format, parseISO } from 'date-fns';
+import { addDays, differenceInMinutes, format, parseISO } from 'date-fns';
 
 /** Parse a 'YYYY-MM-DD' string as a local-midnight Date. */
 export function parseDay(day: string): Date {
@@ -9,6 +9,11 @@ export function parseDay(day: string): Date {
 /** Format a Date as a local 'YYYY-MM-DD' string. */
 export function formatDay(date: Date): string {
   return format(date, 'yyyy-MM-dd');
+}
+
+/** Shift a 'YYYY-MM-DD' string by whole days. */
+export function addDaysStr(day: string, delta: number): string {
+  return formatDay(addDays(parseDay(day), delta));
 }
 
 /** Today's local date as 'YYYY-MM-DD'. */

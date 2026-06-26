@@ -2,7 +2,38 @@
 import type { BreakHandling, DayRecord, Segment, Settings } from '../types';
 import { isHoliday, type HolidayContext } from './holidays';
 import { eachDayStr, type PeriodRange } from './period';
-import { hoursToMinutes, segmentMinutes, statutoryBreakMinutes } from './time';
+import { addDaysStr, hoursToMinutes, segmentMinutes, statutoryBreakMinutes } from './time';
+
+/**
+ * The effective "confirmed through" date for the standard-hours assumption.
+ * - assumption off            -> null (no みなし; empty past days count as 0)
+ * - on, no explicit cursor    -> yesterday (auto: everything up to yesterday is みなし)
+ * - on, explicit cursor       -> that date (capped at today)
+ */
+export function effectiveConfirmEnd(settings: Settings, today: string): string | null {
+  if (!settings.assumeStandardForElapsed) return null;
+  const base = settings.confirmedThrough ?? addDaysStr(today, -1);
+  return base > today ? today : base;
+}
+
+/** Classification of a single day for display (history tagging). */
+export type DayKind = 'record' | 'assumed' | 'unconfirmed' | 'forecast' | 'holiday';
+
+/** Classify a date given records, holiday calendar, and the confirm cursor. */
+export function classifyDay(
+  date: string,
+  hasRecord: boolean,
+  holiday: boolean,
+  today: string,
+  confEnd: string | null,
+): DayKind {
+  if (hasRecord) return 'record';
+  if (holiday) return 'holiday';
+  if (date >= today) return 'forecast';
+  // past, empty, working day:
+  if (confEnd && date <= confEnd) return 'assumed';
+  return 'unconfirmed';
+}
 
 /**
  * Net worked minutes derived from segments, honouring break handling.
@@ -39,15 +70,23 @@ export interface StatusInput {
   days: DayRecord[];
   ctx: HolidayContext;
   today: string; // 'YYYY-MM-DD'
+  /**
+   * Confirm cursor for the standard-hours assumption (see effectiveConfirmEnd).
+   * Omit / null to disable the assumption (empty past days count as 0).
+   */
+  confEnd?: string | null;
 }
 
 export interface Status {
   requiredMinutes: number;
   workingDays: number; // total scheduled working days in the period
-  actualMinutes: number; // contributions of records dated <= today
+  actualMinutes: number; // record contributions (<= today) + assumed standard days
   plannedMinutes: number; // contributions of future records (date > today)
   remainingWorkingDays: number; // future non-holiday days without a record
   elapsedWorkingDays: number; // scheduled working days from start..today
+  assumedDays: number; // empty past working days counted as standard (みなし)
+  assumedMinutes: number; // minutes contributed by assumed days
+  unconfirmedDays: number; // empty past working days beyond the confirm line (0 扱い)
   forecastMinutes: number;
   bufferMinutes: number; // >0 surplus (青) / <0 shortfall (赤)
   reduciblePerDayMinutes: number | null; // null when no remaining working days
@@ -63,6 +102,7 @@ export interface Status {
  */
 export function computeStatus(input: StatusInput): Status {
   const { settings, range, days, ctx, today } = input;
+  const confEnd = input.confEnd ?? null;
   const dailyStdMin = hoursToMinutes(settings.dailyStandardHours);
 
   // Scheduled working days in the whole period.
@@ -95,6 +135,19 @@ export function computeStatus(input: StatusInput): Status {
     }
   }
 
+  // Past empty working days: either みなし (assumed standard) up to the confirm
+  // line, or unconfirmed (counted as 0) beyond it.
+  let assumedDays = 0;
+  let unconfirmedDays = 0;
+  for (const d of allDays) {
+    if (d >= today) continue;
+    if (isHoliday(d, settings, ctx) || recordByDate.has(d)) continue;
+    if (confEnd && d <= confEnd) assumedDays += 1;
+    else unconfirmedDays += 1;
+  }
+  const assumedMinutes = assumedDays * dailyStdMin;
+  actualMinutes += assumedMinutes;
+
   // Context: scheduled working days already elapsed (start..today).
   let elapsedWorkingDays = 0;
   if (today >= range.startDate) {
@@ -120,6 +173,9 @@ export function computeStatus(input: StatusInput): Status {
     plannedMinutes,
     remainingWorkingDays,
     elapsedWorkingDays,
+    assumedDays,
+    assumedMinutes,
+    unconfirmedDays,
     forecastMinutes,
     bufferMinutes,
     reduciblePerDayMinutes,

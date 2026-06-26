@@ -4,9 +4,11 @@ import { DEFAULT_SETTINGS } from '../types';
 import { buildHolidayContext } from '../domain/holidays';
 import {
   applySimulation,
+  classifyDay,
   computeStatus,
   dayContributionMinutes,
   deriveTotalMinutes,
+  effectiveConfirmEnd,
 } from '../domain/calc';
 
 const noHolidays: Settings = {
@@ -128,6 +130,91 @@ describe('computeStatus — shortfall framing', () => {
     expect(status.bufferMinutes).toBeLessThan(0);
     expect(status.additionalPerDayMinutes).not.toBeNull();
     expect(status.reducibleTodayMinutes).toBeLessThanOrEqual(0);
+  });
+});
+
+describe('effectiveConfirmEnd', () => {
+  it('returns null when the assumption is off', () => {
+    const s = { ...noHolidays, assumeStandardForElapsed: false };
+    expect(effectiveConfirmEnd(s, '2026-06-10')).toBeNull();
+  });
+  it('defaults to yesterday when no cursor is set', () => {
+    const s = { ...noHolidays, assumeStandardForElapsed: true, confirmedThrough: null };
+    expect(effectiveConfirmEnd(s, '2026-06-10')).toBe('2026-06-09');
+  });
+  it('caps an explicit future cursor at today', () => {
+    const s = { ...noHolidays, assumeStandardForElapsed: true, confirmedThrough: '2026-06-15' };
+    expect(effectiveConfirmEnd(s, '2026-06-10')).toBe('2026-06-10');
+  });
+});
+
+describe('classifyDay', () => {
+  const today = '2026-06-04';
+  const confEnd = '2026-06-02';
+  it('records and holidays are tagged first', () => {
+    expect(classifyDay('2026-06-01', true, false, today, confEnd)).toBe('record');
+    expect(classifyDay('2026-06-01', false, true, today, confEnd)).toBe('holiday');
+  });
+  it('today and future are forecast', () => {
+    expect(classifyDay('2026-06-04', false, false, today, confEnd)).toBe('forecast');
+    expect(classifyDay('2026-06-09', false, false, today, confEnd)).toBe('forecast');
+  });
+  it('past empty days split on the confirm line', () => {
+    expect(classifyDay('2026-06-02', false, false, today, confEnd)).toBe('assumed');
+    expect(classifyDay('2026-06-03', false, false, today, confEnd)).toBe('unconfirmed');
+  });
+  it('with no confirm line, past empty days are unconfirmed', () => {
+    expect(classifyDay('2026-06-01', false, false, today, null)).toBe('unconfirmed');
+  });
+});
+
+describe('computeStatus — standard-hours assumption (みなし)', () => {
+  const settings: Settings = { ...noHolidays, dailyStandardHours: 8, requiredHoursMode: 'auto' };
+  const range = { id: '2026-06-01', startDate: '2026-06-01', endDate: '2026-06-05' };
+
+  it('confirmed past empty days are counted as standard; on-pace with nothing logged', () => {
+    // today 06-04, confirm through 06-03 -> 06-01..03 みなし, 06-04/05 remaining.
+    const status = computeStatus({
+      settings, range, days: [], ctx, today: '2026-06-04', confEnd: '2026-06-03',
+    });
+    expect(status.assumedDays).toBe(3);
+    expect(status.assumedMinutes).toBe(3 * 8 * 60);
+    expect(status.unconfirmedDays).toBe(0);
+    expect(status.actualMinutes).toBe(3 * 8 * 60);
+    expect(status.remainingWorkingDays).toBe(2);
+    expect(status.forecastMinutes).toBe(40 * 60);
+    expect(status.bufferMinutes).toBe(0);
+  });
+
+  it('days beyond the confirm line are unconfirmed (0) and drag the buffer down', () => {
+    const status = computeStatus({
+      settings, range, days: [], ctx, today: '2026-06-04', confEnd: '2026-06-01',
+    });
+    expect(status.assumedDays).toBe(1);
+    expect(status.unconfirmedDays).toBe(2);
+    expect(status.actualMinutes).toBe(8 * 60);
+    expect(status.forecastMinutes).toBe((8 + 2 * 8) * 60);
+    expect(status.bufferMinutes).toBe(-16 * 60);
+  });
+
+  it('a record overrides the みなし for that day', () => {
+    const days: DayRecord[] = [{ ...work('2026-06-02', 0), type: 'absence' }];
+    const status = computeStatus({
+      settings, range, days, ctx, today: '2026-06-04', confEnd: '2026-06-03',
+    });
+    // 06-02 is now an explicit absence (0), so only 06-01 & 06-03 are みなし.
+    expect(status.assumedDays).toBe(2);
+    expect(status.actualMinutes).toBe(2 * 8 * 60);
+  });
+
+  it('logging a normal full day equals leaving it empty (buffer unchanged)', () => {
+    const empty = computeStatus({
+      settings, range, days: [], ctx, today: '2026-06-04', confEnd: '2026-06-03',
+    });
+    const logged = computeStatus({
+      settings, range, days: [work('2026-06-02', 8 * 60)], ctx, today: '2026-06-04', confEnd: '2026-06-03',
+    });
+    expect(logged.bufferMinutes).toBe(empty.bufferMinutes);
   });
 });
 
