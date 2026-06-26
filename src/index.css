@@ -795,7 +795,8 @@ body {
   }
   .modal {
     border-radius: 18px;
-    max-width: 520px;
+    /* Grow with the viewport on wider screens (so the time bar is larger). */
+    max-width: min(880px, 90vw);
   }
 
   /* History day list reads better as two columns when there's room. */

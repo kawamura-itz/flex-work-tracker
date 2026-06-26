@@ -8,17 +8,13 @@ import {
   exportAll,
   importAll,
   putOverride,
-  putPeriod,
   requestPersistentStorage,
 } from '../db';
-import { computeStatus, effectiveConfirmEnd } from '../domain/calc';
-import { usePeriodDays } from '../hooks/useStatus';
 import { parseDay, todayStr } from '../domain/time';
 import type {
   BackupPayload,
   HolidayOverride,
   InputMethod,
-  Period,
   RequiredHoursMode,
   Settings,
 } from '../types';
@@ -64,8 +60,7 @@ function num(v: string, fallback: number): number {
 }
 
 export function SettingsPage() {
-  const { settings, updateSettings, holidayCtx, period, today } = useApp();
-  const days = usePeriodDays();
+  const { settings, updateSettings, today } = useApp();
   const overrides = useLiveQuery(() => db.holidayOverrides.orderBy('date').toArray(), [], []);
   const fileRef = useRef<HTMLInputElement>(null);
   const [msg, setMsg] = useState<string>('');
@@ -125,25 +120,6 @@ export function SettingsPage() {
     } catch (e) {
       setMsg('インポート失敗: ' + (e instanceof Error ? e.message : String(e)));
     }
-  }
-
-  async function closePeriod() {
-    const confEnd = effectiveConfirmEnd(settings, today);
-    const status = computeStatus({ settings, range: period, days, ctx: holidayCtx, today, confEnd });
-    const p: Period = {
-      id: period.id,
-      startDate: period.startDate,
-      endDate: period.endDate,
-      status: 'closed',
-      snapshot: {
-        requiredMinutes: status.requiredMinutes,
-        workingDays: status.workingDays,
-        dailyStandardHours: settings.dailyStandardHours,
-        actualMinutes: status.actualMinutes,
-      },
-    };
-    await putPeriod(p);
-    setMsg(`期間 ${period.startDate} を確定スナップショットとして保存しました。`);
   }
 
   async function persist() {
@@ -316,16 +292,6 @@ export function SettingsPage() {
             ))}
           </div>
         )}
-      </div>
-
-      <div className="section-head">清算期間</div>
-      <div className="card">
-        <p className="muted" style={{ marginTop: 0 }}>
-          現在の期間: {period.startDate} 〜 {period.endDate}
-        </p>
-        <button className="btn btn--ghost btn--sm" onClick={() => void closePeriod()}>
-          この期間を確定（スナップショット保存）
-        </button>
       </div>
 
       <div className="section-head">バックアップ</div>
