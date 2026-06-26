@@ -474,6 +474,208 @@ body {
   margin: 18px 2px 8px;
 }
 
+/* --- Home grid -------------------------------------------------------- */
+.home-grid {
+  display: block;
+}
+.home-side {
+  margin-bottom: 14px;
+}
+
+/* --- Calendar --------------------------------------------------------- */
+.cal-card {
+  padding: 12px;
+}
+.cal-head {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-bottom: 6px;
+}
+.cal-wd {
+  text-align: center;
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+  padding: 2px 0;
+}
+.cal-wd.sun {
+  color: #d9777a;
+}
+.cal-wd.sat {
+  color: #6f93c9;
+}
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+.cal-cell {
+  appearance: none;
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 10px;
+  aspect-ratio: 1 / 1;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  cursor: pointer;
+  min-height: 44px;
+  overflow: hidden;
+}
+.cal-cell:active {
+  transform: scale(0.97);
+}
+.cal-cell.out {
+  border: none;
+  background: transparent;
+  cursor: default;
+}
+.cal-d {
+  font-size: 0.74rem;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+.cal-v {
+  font-size: 0.7rem;
+  font-weight: 700;
+  align-self: stretch;
+  text-align: right;
+  white-space: nowrap;
+}
+.cal-v.pos {
+  color: var(--surplus);
+}
+.cal-v.neg {
+  color: var(--shortfall);
+}
+.cal-v.warn {
+  color: #c64a4a;
+}
+/* status backgrounds */
+.cal-cell.k-assumed {
+  background: #f1f6ff;
+}
+.cal-cell.k-record {
+  background: #fff;
+  border-color: #c9d6ea;
+}
+.cal-cell.k-unconfirmed {
+  background: var(--shortfall-soft);
+  border-color: #f0b6b6;
+}
+.cal-cell.k-forecast {
+  background: #fafbfd;
+}
+.cal-cell.is-holiday {
+  background: #f3f4f7;
+}
+.cal-cell.is-holiday .cal-d {
+  color: #c08;
+  color: #cf8a8a;
+}
+.cal-cell.is-today {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.cal-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+}
+.cal-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.cal-legend .dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
+  display: inline-block;
+  border: 1px solid var(--line);
+}
+.cal-legend .dot.k-assumed {
+  background: #f1f6ff;
+}
+.cal-legend .dot.k-record {
+  background: #fff;
+  border-color: #c9d6ea;
+}
+.cal-legend .dot.k-unconfirmed {
+  background: var(--shortfall-soft);
+  border-color: #f0b6b6;
+}
+.cal-legend .dot.k-forecast {
+  background: #fafbfd;
+}
+
+/* --- Modal & day editor ----------------------------------------------- */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 28, 48, 0.4);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 50;
+  padding: 0;
+}
+.modal {
+  background: var(--bg);
+  width: 100%;
+  max-width: 540px;
+  max-height: 92vh;
+  overflow-y: auto;
+  border-radius: 18px 18px 0 0;
+  padding: 18px 16px calc(20px + env(safe-area-inset-bottom));
+  box-shadow: 0 -8px 30px rgba(20, 30, 60, 0.18);
+}
+.day-editor__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.icon-btn {
+  appearance: none;
+  border: none;
+  background: #eef0f4;
+  color: var(--ink-soft);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.impact-readout {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  font-size: 0.84rem;
+  color: var(--ink-soft);
+}
+.impact-readout b {
+  font-size: 1.2rem;
+  color: var(--ink);
+}
+.impact-readout b.surplus {
+  color: var(--surplus);
+}
+.impact-readout b.shortfall {
+  color: var(--shortfall);
+}
+
 /* ===================================================================== */
 /* Wide layout (tablet / desktop / browser): sidebar nav + multi-column. */
 /* The phone layout above is the default; this kicks in from 768px up.    */
@@ -564,6 +766,41 @@ body {
   }
   .main-grid__secondary .section-head {
     margin-top: 0;
+  }
+
+  /* Home: status column on the left, calendar on the right. */
+  .home-grid {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    gap: 24px;
+    align-items: start;
+    max-width: 1000px;
+  }
+  .home-side {
+    margin-bottom: 0;
+    position: sticky;
+    top: 28px;
+  }
+
+  /* Bigger calendar cells when there's room. */
+  .cal-cell {
+    min-height: 64px;
+    padding: 6px;
+  }
+  .cal-d {
+    font-size: 0.82rem;
+  }
+  .cal-v {
+    font-size: 0.78rem;
+  }
+
+  /* Center the day editor as a dialog instead of a bottom sheet. */
+  .modal-backdrop {
+    align-items: center;
+  }
+  .modal {
+    border-radius: 18px;
+    max-width: 520px;
   }
 
   /* History day list reads better as two columns when there's room. */

@@ -1,17 +1,19 @@
 import { format } from 'date-fns';
+import { useState } from 'react';
 import { MeterGauge } from '../components/MeterGauge';
-import { WorkTimer } from '../components/WorkTimer';
+import { MonthCalendar } from '../components/MonthCalendar';
+import { DayEditor } from '../components/DayEditor';
+import { Modal } from '../components/Modal';
 import { useApp } from '../state/AppContext';
 import { useStatus } from '../hooks/useStatus';
-import { fmtHM } from '../domain/time';
-import { parseDay } from '../domain/time';
+import { fmtHM, parseDay } from '../domain/time';
 
 export function MainPage() {
   const { period, today, updateSettings } = useApp();
   const { status } = useStatus();
+  const [editDate, setEditDate] = useState<string | null>(null);
 
   const periodLabel = `${format(parseDay(period.startDate), 'M/d')} 〜 ${format(parseDay(period.endDate), 'M/d')}`;
-
   const canReduce = status.bufferMinutes > 0;
 
   return (
@@ -22,7 +24,6 @@ export function MainPage() {
         <div className="notice">
           <span>
             未確定の平日が <b>{status.unconfirmedDays}日</b> あります（実績に未算入）。
-            所定どおりなら確定、違う日は記録してください。
           </span>
           <button
             className="btn btn--ghost btn--sm"
@@ -33,8 +34,8 @@ export function MainPage() {
         </div>
       )}
 
-      <div className="main-grid">
-        <section className="main-grid__primary">
+      <div className="home-grid">
+        <aside className="home-side">
           <MeterGauge bufferMinutes={status.bufferMinutes} />
 
           <div className="meter__details">
@@ -51,11 +52,8 @@ export function MainPage() {
               <b>{status.remainingWorkingDays}日</b>
             </div>
           </div>
-        </section>
 
-        <section className="main-grid__secondary">
-          <div className="section-head">減らせる時間</div>
-          <div className="row">
+          <div className="row" style={{ marginTop: 14 }}>
             <div className="card card--sub">
               <div className="card__label">毎日に割り振る</div>
               {status.reduciblePerDayMinutes !== null && status.remainingWorkingDays > 0 ? (
@@ -67,8 +65,8 @@ export function MainPage() {
                     {canReduce
                       ? `残り${status.remainingWorkingDays}日、1日あたり`
                       : status.additionalPerDayMinutes !== null
-                        ? `不足: 1日 +${fmtHM(status.additionalPerDayMinutes)} 必要`
-                        : '短縮できる余力なし'}
+                        ? `不足: 1日 +${fmtHM(status.additionalPerDayMinutes)}`
+                        : '余力なし'}
                   </div>
                 </>
               ) : (
@@ -91,10 +89,21 @@ export function MainPage() {
               )}
             </div>
           </div>
+        </aside>
 
-          <WorkTimer />
-        </section>
+        <main className="home-main">
+          <div className="section-head" style={{ marginTop: 0 }}>
+            カレンダー（日付をタップで ± 入力 / 今日はタイマー）
+          </div>
+          <MonthCalendar onSelect={setEditDate} />
+        </main>
       </div>
+
+      {editDate && (
+        <Modal onClose={() => setEditDate(null)}>
+          <DayEditor date={editDate} onClose={() => setEditDate(null)} />
+        </Modal>
+      )}
     </>
   );
 }

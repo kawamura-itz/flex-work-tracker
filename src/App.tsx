@@ -6,8 +6,7 @@ import { SettingsPage } from './pages/SettingsPage';
 import { HistoryPage } from './pages/HistoryPage';
 
 const NAV = [
-  { to: '/', label: 'メイン', ico: '⚖️', end: true },
-  { to: '/input', label: '入力', ico: '✏️', end: false },
+  { to: '/', label: 'ホーム', ico: '📅', end: true },
   { to: '/sim', label: '試算', ico: '🔮', end: false },
   { to: '/history', label: '履歴', ico: '🗂️', end: false },
   { to: '/settings', label: '設定', ico: '⚙️', end: false },

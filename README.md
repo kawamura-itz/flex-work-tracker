@@ -32,7 +32,12 @@ npm run holidays   # 内閣府CSVから祝日データを再生成（public/holi
 | ドメイン | [src/domain/](src/domain/) | 純粋関数：時間計算・休日判定・期間境界・過不足計算（§4, §8）|
 | 永続化 | [src/db.ts](src/db.ts) | Dexie によるIndexedDB・JSONバックアップ |
 | 状態 | [src/state/](src/state/), [src/hooks/](src/hooks/) | 設定・祝日・現在期間・タイマー |
-| 画面 | [src/pages/](src/pages/), [src/components/](src/components/) | メイン/入力/試算/設定/履歴 |
+| 画面 | [src/pages/](src/pages/), [src/components/](src/components/) | ホーム(過不足＋月カレンダー)/試算/履歴/設定 |
+
+ホームは過不足メーターと **月カレンダー** が中心。カレンダーの日付をタップすると
+その日の編集モーダル（[DayEditor](src/components/DayEditor.tsx)）が開き、区分や勤務時間を
+入れると「この日の過不足への影響 ±」が即時に表示されます。今日のセルにはタイマーが
+入ります。各日は みなし / 記録 / 未確定 / 見込み / 休 で色分け表示されます。
 
 計算ロジックの中核は [src/domain/calc.ts](src/domain/calc.ts) にあり、
 要件 §4.7 の検証例を含む31件のテスト（[src/test/](src/test/)）で固めています。
