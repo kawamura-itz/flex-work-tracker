@@ -27,10 +27,14 @@ export function App() {
         </Routes>
       </main>
       <nav className="nav">
+        <div className="nav__brand">
+          <span className="nav__brand-ico">⚖️</span>
+          <span className="nav__brand-text">フレックス<br />トラッカー</span>
+        </div>
         {NAV.map((n) => (
           <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => (isActive ? 'active' : '')}>
             <span className="ico">{n.ico}</span>
-            {n.label}
+            <span className="nav__label">{n.label}</span>
           </NavLink>
         ))}
       </nav>

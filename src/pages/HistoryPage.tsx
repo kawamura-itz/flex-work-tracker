@@ -66,7 +66,7 @@ export function HistoryPage() {
       <div className="page-title">履歴</div>
 
       <div className="section-head">今期の日別記録</div>
-      <div className="card">{allDates.map(renderDay)}</div>
+      <div className="card history-days">{allDates.map(renderDay)}</div>
 
       <div className="section-head">確定済みの清算期間</div>
       {(closed ?? []).length === 0 ? (

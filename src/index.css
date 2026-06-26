@@ -99,6 +99,7 @@ body {
 .row {
   display: flex;
   gap: 12px;
+  margin-bottom: 14px;
 }
 
 .row > * {
@@ -394,6 +395,16 @@ body {
   margin-bottom: 2px;
 }
 
+/* Sidebar brand: hidden on phone layout, shown on wide layout. */
+.nav__brand {
+  display: none;
+}
+
+/* Main page region wrapper: stacked on phone, two columns on wide. */
+.main-grid {
+  display: block;
+}
+
 /* --- History / list ---------------------------------------------------- */
 .list-item {
   display: flex;
@@ -444,4 +455,113 @@ body {
   font-weight: 700;
   color: var(--ink-soft);
   margin: 18px 2px 8px;
+}
+
+/* ===================================================================== */
+/* Wide layout (tablet / desktop / browser): sidebar nav + multi-column. */
+/* The phone layout above is the default; this kicks in from 768px up.    */
+/* ===================================================================== */
+@media (min-width: 768px) {
+  .app {
+    flex-direction: row;
+    max-width: 1200px;
+    align-items: stretch;
+  }
+
+  .app__main {
+    padding: 28px 40px 56px;
+  }
+  /* Keep content readable: forms in a narrow column, dashboard wider. */
+  .app__main > * {
+    max-width: 760px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .main-grid {
+    max-width: 1000px;
+  }
+
+  /* Bottom bar becomes a left sidebar. */
+  .nav {
+    position: sticky;
+    top: 0;
+    left: auto;
+    right: auto;
+    order: -1;
+    max-width: none;
+    margin: 0;
+    width: 212px;
+    flex-shrink: 0;
+    flex-direction: column;
+    align-self: stretch;
+    min-height: 100vh;
+    gap: 2px;
+    padding: 16px 12px;
+    border-top: none;
+    border-right: 1px solid var(--line);
+    background: var(--card);
+    backdrop-filter: none;
+  }
+  .nav a {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-align: left;
+    padding: 11px 14px;
+    border-radius: 10px;
+    font-size: 0.92rem;
+  }
+  .nav a .ico {
+    display: inline;
+    margin: 0;
+    font-size: 1.2rem;
+  }
+  .nav a.active {
+    color: var(--accent);
+    background: var(--surplus-soft);
+  }
+  .nav__brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px 18px;
+    font-weight: 800;
+    font-size: 1rem;
+    line-height: 1.1;
+    color: var(--ink);
+  }
+  .nav__brand-ico {
+    font-size: 1.55rem;
+  }
+
+  /* Dashboard: meter on the left, cards + timer on the right. */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 24px;
+    align-items: start;
+  }
+  .main-grid__primary .meter {
+    margin-bottom: 0;
+  }
+  .main-grid__secondary .section-head {
+    margin-top: 0;
+  }
+
+  /* History day list reads better as two columns when there's room. */
+  .history-days {
+    column-count: 2;
+    column-gap: 18px;
+  }
+  .history-days .day-cell {
+    break-inside: avoid;
+  }
+}
+
+/* Extra breathing room on large desktops. */
+@media (min-width: 1100px) {
+  .app__main {
+    padding: 36px 56px 64px;
+  }
 }
