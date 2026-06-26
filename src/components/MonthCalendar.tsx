@@ -50,10 +50,14 @@ export function MonthCalendar({ onSelect }: { onSelect: (date: string) => void }
               ? stdMin
               : 0; // unconfirmed (assumption off)
 
+          // Show a value for any working day, and for any day with a record
+          // (incl. working on a holiday). Baseline is 0 on holidays, so holiday
+          // work reads as a surplus (+).
           let label = '';
           let tone = 'zero';
-          if (!holiday) {
-            const delta = contribution - stdMin;
+          if (rec || !holiday) {
+            const baseStd = holiday ? 0 : stdMin;
+            const delta = contribution - baseStd;
             label = fmtSignedHM(delta);
             tone = delta > 0 ? 'pos' : delta < 0 ? 'neg' : 'zero';
           }
@@ -61,7 +65,7 @@ export function MonthCalendar({ onSelect }: { onSelect: (date: string) => void }
           return (
             <button
               key={date}
-              className={`cal-cell ${date === today ? 'is-today' : ''} ${holiday ? 'is-holiday' : ''}`}
+              className={`cal-cell ${date === today ? 'is-today' : ''} ${holiday && !rec ? 'is-holiday' : ''}`}
               onClick={() => onSelect(date)}
             >
               <span className="cal-d">{format(parseDay(date), 'd')}</span>

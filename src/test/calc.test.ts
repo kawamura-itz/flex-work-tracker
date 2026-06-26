@@ -214,6 +214,24 @@ describe('computeStatus — standard-hours assumption (みなし)', () => {
   });
 });
 
+describe('computeStatus — working on a holiday (weekend)', () => {
+  // Weekends are holidays; a work record on a Saturday should still count.
+  const settings: Settings = {
+    ...DEFAULT_SETTINGS,
+    dailyStandardHours: 8,
+    requiredHoursMode: 'auto',
+    assumeStandardForElapsed: false,
+    holidayRule: { saturday: true, sunday: true, nationalHoliday: false },
+  };
+  const range = { id: '2026-06-01', startDate: '2026-06-01', endDate: '2026-06-07' };
+  it('counts the holiday work in actuals; required excludes the weekend', () => {
+    const days = [work('2026-06-06', 240)]; // Saturday, 4h
+    const status = computeStatus({ settings, range, days, ctx, today: '2026-06-07' });
+    expect(status.workingDays).toBe(5); // Mon–Fri only
+    expect(status.actualMinutes).toBe(240); // Saturday work still counted
+  });
+});
+
 describe('applySimulation', () => {
   const settings: Settings = { ...noHolidays, dailyStandardHours: 8, requiredHoursMode: 'auto' };
   const range = { id: '2026-06-01', startDate: '2026-06-01', endDate: '2026-06-05' };
