@@ -310,6 +310,42 @@ body {
   flex: 1;
 }
 
+/* --- Timeline (bar) selector ----------------------------------------- */
+.tl-bar {
+  display: flex;
+  height: 48px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fafbfd;
+  touch-action: none;
+  user-select: none;
+  cursor: pointer;
+}
+.tl-slot {
+  flex: 1 1 0;
+  border-left: 1px solid #eef0f4;
+  pointer-events: none;
+}
+.tl-slot:first-child {
+  border-left: none;
+}
+.tl-slot.hour {
+  border-left: 1px solid #d7dbe3;
+}
+.tl-slot.on {
+  background: var(--accent);
+}
+.tl-ticks {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.66rem;
+  color: var(--ink-soft);
+  margin-top: 4px;
+  padding: 0 1px;
+  font-variant-numeric: tabular-nums;
+}
+
 .seg-toggle {
   display: flex;
   gap: 8px;

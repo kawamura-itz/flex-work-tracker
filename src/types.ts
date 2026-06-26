@@ -5,8 +5,8 @@
 /** How the monthly required hours are determined. */
 export type RequiredHoursMode = 'auto' | 'manual';
 
-/** Input method for a day's record. */
-export type InputMethod = 'timer' | 'time' | 'total';
+/** Input method for a day's record. ('timer' kept for old records.) */
+export type InputMethod = 'timer' | 'time' | 'total' | 'bar';
 
 /** Day classification. */
 export type DayType =
@@ -107,7 +107,7 @@ export const DEFAULT_SETTINGS: Settings = {
   holidayRule: { saturday: true, sunday: true, nationalHoliday: true },
   paidLeaveHours: 8,
   breakMinutes: 60,
-  defaultInputMethod: 'time',
+  defaultInputMethod: 'bar',
   workStartTime: '09:00',
   assumeStandardForElapsed: true,
 };

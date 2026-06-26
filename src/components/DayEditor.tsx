@@ -5,7 +5,14 @@ import { deleteDay, getDay, putDay } from '../db';
 import { deriveTotalMinutes } from '../domain/calc';
 import { isHoliday } from '../domain/holidays';
 import { fmtHM, fmtSignedHM, hoursToMinutes, parseDay } from '../domain/time';
+import { TimelineSelector } from './TimelineSelector';
 import type { DayRecord, DayType, InputMethod, Segment, Settings } from '../types';
+
+/** Which sub-editor is shown for a work/half day. */
+type EditMode = 'bar' | 'time' | 'total';
+function toMode(m: InputMethod): EditMode {
+  return m === 'total' ? 'total' : m === 'time' ? 'time' : 'bar';
+}
 
 const TYPE_LABELS: Record<DayType, string> = {
   work: '勤務',
@@ -74,9 +81,7 @@ export function DayEditor({ date, onClose }: { date: string; onClose?: () => voi
   const baseStd = holiday ? 0 : stdMin; // standard contribution expected for this day
 
   const [type, setType] = useState<DayType>(holiday ? 'holiday' : 'work');
-  const [method, setMethod] = useState<InputMethod>(
-    settings.defaultInputMethod === 'timer' ? 'time' : settings.defaultInputMethod,
-  );
+  const [mode, setMode] = useState<EditMode>(() => toMode(settings.defaultInputMethod));
   const [pairs, setPairs] = useState<TimePair[]>(() => [standardPair(settings)]);
   const [totalHours, setTotalHours] = useState<string>(String(settings.dailyStandardHours));
   const [note, setNote] = useState('');
@@ -89,7 +94,7 @@ export function DayEditor({ date, onClose }: { date: string; onClose?: () => voi
       if (!active) return;
       if (rec) {
         setType(rec.type);
-        setMethod(rec.inputMethod === 'timer' ? 'time' : rec.inputMethod);
+        setMode(toMode(rec.inputMethod));
         const p = segmentsToPairs(rec.segments, settings.workStartTime);
         if (p.length > 0) setPairs(p);
         setTotalHours((rec.totalMinutes / 60).toString());
@@ -111,9 +116,9 @@ export function DayEditor({ date, onClose }: { date: string; onClose?: () => voi
 
   const previewMinutes = useMemo(() => {
     if (!HAS_SEGMENTS.includes(type)) return 0;
-    if (method === 'total') return Math.round(parseFloat(totalHours || '0') * 60);
+    if (mode === 'total') return Math.round(parseFloat(totalHours || '0') * 60);
     return deriveTotalMinutes(pairsToSegments(date, pairs), effectiveBreak);
-  }, [type, method, totalHours, pairs, date, effectiveBreak]);
+  }, [type, mode, totalHours, pairs, date, effectiveBreak]);
 
   // Contribution this record would make, and its ± impact vs the standard day.
   const contribution = useMemo(() => {
@@ -138,7 +143,7 @@ export function DayEditor({ date, onClose }: { date: string; onClose?: () => voi
     let segments: Segment[] = [];
     let totalMinutes = 0;
     if (HAS_SEGMENTS.includes(type)) {
-      if (method === 'total') {
+      if (mode === 'total') {
         totalMinutes = Math.round(parseFloat(totalHours || '0') * 60);
         segments = [{ start: `${date}T00:00:00`, end: `${date}T00:00:00` }];
       } else {
@@ -151,7 +156,7 @@ export function DayEditor({ date, onClose }: { date: string; onClose?: () => voi
       type,
       segments,
       totalMinutes,
-      inputMethod: HAS_SEGMENTS.includes(type) ? method : 'total',
+      inputMethod: HAS_SEGMENTS.includes(type) ? (mode === 'total' ? 'total' : mode === 'bar' ? 'bar' : 'time') : 'total',
       note: note || undefined,
     };
     await putDay(record);
@@ -212,15 +217,24 @@ export function DayEditor({ date, onClose }: { date: string; onClose?: () => voi
       {showSegments && (
         <>
           <div className="seg-toggle">
-            <button className={method === 'time' ? 'active' : ''} onClick={() => setMethod('time')}>
+            <button className={mode === 'bar' ? 'active' : ''} onClick={() => setMode('bar')}>
+              バー選択
+            </button>
+            <button className={mode === 'time' ? 'active' : ''} onClick={() => setMode('time')}>
               時刻入力
             </button>
-            <button className={method === 'total' ? 'active' : ''} onClick={() => setMethod('total')}>
+            <button className={mode === 'total' ? 'active' : ''} onClick={() => setMode('total')}>
               合計入力
             </button>
           </div>
 
-          {method === 'time' ? (
+          {mode === 'bar' && (
+            <div className="card">
+              <TimelineSelector value={pairs} onChange={setPairs} />
+            </div>
+          )}
+
+          {mode === 'time' && (
             <div className="card">
               {pairs.map((p, i) => (
                 <div className="inline-fields" key={i} style={{ marginBottom: 10 }}>
@@ -271,7 +285,9 @@ export function DayEditor({ date, onClose }: { date: string; onClose?: () => voi
                 中抜け（外出・離席）があるときに時間帯を分けます。昼休みは自動で差し引かれるので分ける必要はありません。
               </p>
             </div>
-          ) : (
+          )}
+
+          {mode === 'total' && (
             <div className="field">
               <label>合計時間（時間・小数可）</label>
               <input
@@ -286,10 +302,10 @@ export function DayEditor({ date, onClose }: { date: string; onClose?: () => voi
 
           <p className="hint">
             この日の実働: <b>{fmtHM(previewMinutes)}</b>
-            {method === 'time' && effectiveBreak > 0 && `（昼休み${effectiveBreak}分を差引`}
-            {method === 'time' && effectiveBreak > 0 && pairs.length > 1 && '、中抜けは除外'}
-            {method === 'time' && effectiveBreak > 0 && '）'}
-            {method === 'time' && effectiveBreak === 0 && pairs.length > 1 && '（中抜けは除外）'}
+            {mode !== 'total' && effectiveBreak > 0 && `（昼休み${effectiveBreak}分を差引`}
+            {mode !== 'total' && effectiveBreak > 0 && pairs.length > 1 && '、中抜けは除外'}
+            {mode !== 'total' && effectiveBreak > 0 && '）'}
+            {mode !== 'total' && effectiveBreak === 0 && pairs.length > 1 && '（中抜けは除外）'}
           </p>
         </>
       )}

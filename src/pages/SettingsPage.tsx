@@ -49,7 +49,7 @@ function fromSettings(s: Settings): Draft {
     periodStartDay: String(s.periodStartDay),
     paidLeaveHours: String(s.paidLeaveHours),
     breakMinutes: String(s.breakMinutes),
-    defaultInputMethod: s.defaultInputMethod === 'timer' ? 'time' : s.defaultInputMethod,
+    defaultInputMethod: s.defaultInputMethod === 'timer' ? 'bar' : s.defaultInputMethod,
     workStartTime: s.workStartTime,
     saturday: s.holidayRule.saturday,
     sunday: s.holidayRule.sunday,
@@ -235,6 +235,7 @@ export function SettingsPage() {
             value={draft.defaultInputMethod}
             onChange={(e) => set('defaultInputMethod', e.target.value as InputMethod)}
           >
+            <option value="bar">バー選択</option>
             <option value="time">時刻入力</option>
             <option value="total">合計入力</option>
           </select>
