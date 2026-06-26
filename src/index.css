@@ -331,19 +331,27 @@ body {
   border-left: none;
 }
 .tl-slot.hour {
-  border-left: 1px solid #d7dbe3;
+  border-left: 1px solid #c7ccd6;
 }
 .tl-slot.on {
   background: var(--accent);
 }
 .tl-ticks {
   display: flex;
-  justify-content: space-between;
-  font-size: 0.66rem;
-  color: var(--ink-soft);
-  margin-top: 4px;
-  padding: 0 1px;
+  margin-top: 3px;
   font-variant-numeric: tabular-nums;
+}
+.tl-tick {
+  flex: 1 1 0;
+  min-width: 0;
+  font-size: 0.6rem;
+  color: var(--ink-soft);
+  border-left: 1px solid #e3e6ec;
+  padding-left: 2px;
+  box-sizing: border-box;
+}
+.tl-tick:first-child {
+  border-left: none;
 }
 
 .seg-toggle {

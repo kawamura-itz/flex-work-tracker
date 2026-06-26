@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from 'react';
 const WIN_START = 6 * 60; // 06:00
 const SLOT = 30;
 const N = (24 * 60 - WIN_START) / SLOT; // 36 slots
-const TICKS = [6, 9, 12, 15, 18, 21, 24];
+const HOURS = N / 2; // 18 hour columns (6:00–24:00)
 
 interface TimePair {
   start: string;
@@ -123,8 +123,10 @@ export function TimelineSelector({
         ))}
       </div>
       <div className="tl-ticks">
-        {TICKS.map((h) => (
-          <span key={h}>{h}</span>
+        {Array.from({ length: HOURS }, (_, k) => (
+          <span key={k} className="tl-tick">
+            {6 + k}
+          </span>
         ))}
       </div>
       <p className="hint" style={{ marginTop: 6, marginBottom: 0 }}>
