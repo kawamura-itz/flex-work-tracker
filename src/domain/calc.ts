@@ -35,19 +35,25 @@ export function classifyDay(
   return 'unconfirmed';
 }
 
+/** Worked minutes over which a lunch break is required (labour-standard rule). */
+const BREAK_THRESHOLD = 6 * 60; // 6h: ≤6h needs no break
+
 export interface WorkedBreakdown {
   gross: number; // sum of worked spans (minutes)
   gaps: number; // total time between spans (中抜け＋昼休みの隙間)
+  requiredBreak: number; // lunch required this day (0 when worked ≤ 6h)
   autoDeduct: number; // lunch shortfall deducted from gross
   worked: number; // 実働 = gross - autoDeduct
 }
 
 /**
  * Worked minutes with the lunch handled as a required break (案A).
- * The day needs `breakMinutes` of break (lunch). Any gap between segments
- * (中抜け or a lunch you carved out) counts toward that requirement; only the
- * shortfall is deducted from the worked spans. So taking lunch during a 中抜け
- * isn't double-counted, and a single in-to-out span still loses its lunch.
+ * The day needs `breakMinutes` of break (lunch) only when worked time exceeds
+ * 6h (per the labour-standard rule: >6h ⇒ ≥45min, >8h ⇒ ≥60min; ≤6h ⇒ none).
+ * Any gap between segments (中抜け or a carved-out lunch) counts toward that
+ * requirement; only the shortfall is deducted. So lunch during a 中抜け isn't
+ * double-counted, a single span still loses its lunch, and short days keep all
+ * of their time.
  */
 export function workedBreakdown(segments: Segment[], breakMinutes: number): WorkedBreakdown {
   const spans = segments
@@ -59,9 +65,16 @@ export function workedBreakdown(segments: Segment[], breakMinutes: number): Work
   for (const [a, b] of spans) gross += (b - a) / 60000;
   let gaps = 0;
   for (let i = 1; i < spans.length; i++) gaps += Math.max(0, (spans[i][0] - spans[i - 1][1]) / 60000);
-  const autoDeduct = Math.max(0, breakMinutes - gaps);
+  const requiredBreak = gross > BREAK_THRESHOLD ? breakMinutes : 0;
+  const autoDeduct = Math.max(0, requiredBreak - gaps);
   const worked = Math.max(0, Math.round(gross - autoDeduct));
-  return { gross: Math.round(gross), gaps: Math.round(gaps), autoDeduct: Math.round(autoDeduct), worked };
+  return {
+    gross: Math.round(gross),
+    gaps: Math.round(gaps),
+    requiredBreak,
+    autoDeduct: Math.round(autoDeduct),
+    worked,
+  };
 }
 
 /** 実働 minutes (案A). See workedBreakdown. */

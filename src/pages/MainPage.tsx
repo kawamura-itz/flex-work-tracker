@@ -24,22 +24,7 @@ export function MainPage() {
         <aside className="home-side">
           <MeterGauge bufferMinutes={status.bufferMinutes} />
 
-          <div className="meter__details">
-            <div>
-              実績
-              <b>{fmtHM(status.actualMinutes)}</b>
-            </div>
-            <div>
-              着地見込み
-              <b>{fmtHM(status.forecastMinutes)}</b>
-            </div>
-            <div>
-              残り稼働
-              <b>{status.remainingWorkingDays}日</b>
-            </div>
-          </div>
-
-          <div className="row" style={{ marginTop: 14 }}>
+          <div className="row">
             <div className="card card--sub">
               <div className="card__label">毎日に割り振る</div>
               {status.reduciblePerDayMinutes !== null && status.remainingWorkingDays > 0 ? (
@@ -73,6 +58,21 @@ export function MainPage() {
                   <div className="card__note">余力がありません</div>
                 </>
               )}
+            </div>
+          </div>
+
+          <div className="meter__details" style={{ marginTop: 4 }}>
+            <div>
+              実績
+              <b>{fmtHM(status.actualMinutes)}</b>
+            </div>
+            <div>
+              着地見込み
+              <b>{fmtHM(status.forecastMinutes)}</b>
+            </div>
+            <div>
+              残り稼働
+              <b>{status.remainingWorkingDays}日</b>
             </div>
           </div>
         </aside>

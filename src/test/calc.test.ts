@@ -54,9 +54,19 @@ describe('deriveTotalMinutes', () => {
     expect(deriveTotalMinutes(segs, 0)).toBe(7 * 60 + 30);
   });
 
-  it('handles overnight segments via date-bearing datetimes', () => {
+  it('no lunch is deducted when worked time is 6h or less', () => {
+    expect(deriveTotalMinutes([seg('2026-06-01T09:00', '2026-06-01T15:00')], 60)).toBe(6 * 60); // exactly 6h
+    expect(deriveTotalMinutes([seg('2026-06-01T09:00', '2026-06-01T13:00')], 60)).toBe(4 * 60); // 4h
+  });
+
+  it('lunch is deducted once worked time exceeds 6h', () => {
+    // 6.5h single span → break applies → 6.5h - 1h = 5.5h
+    expect(deriveTotalMinutes([seg('2026-06-01T09:00', '2026-06-01T15:30')], 60)).toBe(5 * 60 + 30);
+  });
+
+  it('a short overnight shift (≤6h) keeps all its time', () => {
     const segs = [seg('2026-06-01T22:00', '2026-06-02T02:30')]; // 4.5h across midnight
-    expect(deriveTotalMinutes(segs, 30)).toBe(4 * 60); // 4.5h - 30m (no gaps)
+    expect(deriveTotalMinutes(segs, 30)).toBe(4 * 60 + 30); // no break (≤6h)
   });
 
   it('never goes negative and ignores a running (open) segment', () => {

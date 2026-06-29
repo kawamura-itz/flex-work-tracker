@@ -338,12 +338,14 @@ export function DayEditor({ date, onClose }: { date: string; onClose?: () => voi
 
           <p className="hint">
             この日の実働: <b>{fmtHM(previewMinutes)}</b>
-            {breakdown && effectiveBreak > 0 && breakdown.autoDeduct === effectiveBreak &&
-              `（昼休み${effectiveBreak}分を控除）`}
-            {breakdown && effectiveBreak > 0 && breakdown.autoDeduct === 0 &&
-              `（昼休み${effectiveBreak}分は時間帯の間で取得済み）`}
-            {breakdown && effectiveBreak > 0 && breakdown.autoDeduct > 0 && breakdown.autoDeduct < effectiveBreak &&
-              `（昼休み${effectiveBreak}分のうち${breakdown.autoDeduct}分を控除）`}
+            {breakdown && effectiveBreak > 0 && breakdown.requiredBreak === 0 &&
+              '（6時間以内のため昼休みなし）'}
+            {breakdown && breakdown.requiredBreak > 0 && breakdown.autoDeduct === breakdown.requiredBreak &&
+              `（昼休み${breakdown.requiredBreak}分を控除）`}
+            {breakdown && breakdown.requiredBreak > 0 && breakdown.autoDeduct === 0 &&
+              `（昼休み${breakdown.requiredBreak}分は時間帯の間で取得済み）`}
+            {breakdown && breakdown.requiredBreak > 0 && breakdown.autoDeduct > 0 && breakdown.autoDeduct < breakdown.requiredBreak &&
+              `（昼休み${breakdown.requiredBreak}分のうち${breakdown.autoDeduct}分を控除）`}
           </p>
         </>
       )}
