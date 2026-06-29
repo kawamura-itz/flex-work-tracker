@@ -338,13 +338,15 @@ body {
 }
 .tl-slot.on {
   background: var(--accent);
+  /* Same light/medium/strong hierarchy as the empty area, but as dark tints so
+     it stays consistent (not white) and readable over the blue. */
+  border-left-color: rgba(20, 45, 85, 0.12);
 }
-/* Keep the 30-min / 1-hour marks visible over the selected (blue) area. */
 .tl-slot.on.half {
-  border-left-color: rgba(255, 255, 255, 0.45);
+  border-left-color: rgba(20, 45, 85, 0.26);
 }
 .tl-slot.on.hour {
-  border-left-color: rgba(255, 255, 255, 0.75);
+  border-left-color: rgba(20, 45, 85, 0.5);
 }
 .tl-ticks {
   display: flex;
