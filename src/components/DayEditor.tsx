@@ -81,7 +81,8 @@ export function DayEditor({ date, onClose }: { date: string; onClose?: () => voi
   const baseStd = holiday ? 0 : stdMin; // standard contribution expected for this day
 
   const [type, setType] = useState<DayType>(holiday ? 'holiday' : 'work');
-  const [mode, setMode] = useState<EditMode>(() => toMode(settings.defaultInputMethod));
+  // New days always open in the bar; existing records open in how they were entered.
+  const [mode, setMode] = useState<EditMode>('bar');
   const [pairs, setPairs] = useState<TimePair[]>(() => [standardPair(settings)]);
   const [totalHours, setTotalHours] = useState<string>(String(settings.dailyStandardHours));
   const [note, setNote] = useState('');

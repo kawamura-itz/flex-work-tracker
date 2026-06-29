@@ -11,13 +11,7 @@ import {
   requestPersistentStorage,
 } from '../db';
 import { parseDay, todayStr } from '../domain/time';
-import type {
-  BackupPayload,
-  HolidayOverride,
-  InputMethod,
-  RequiredHoursMode,
-  Settings,
-} from '../types';
+import type { BackupPayload, HolidayOverride, RequiredHoursMode, Settings } from '../types';
 
 // Editable draft of the basic settings. Numbers are kept as strings so a field
 // can be cleared and retyped freely (no "0" prefix while typing). Committed on
@@ -29,7 +23,6 @@ interface Draft {
   periodStartDay: string;
   paidLeaveHours: string;
   breakMinutes: string;
-  defaultInputMethod: InputMethod;
   workStartTime: string;
   saturday: boolean;
   sunday: boolean;
@@ -45,7 +38,6 @@ function fromSettings(s: Settings): Draft {
     periodStartDay: String(s.periodStartDay),
     paidLeaveHours: String(s.paidLeaveHours),
     breakMinutes: String(s.breakMinutes),
-    defaultInputMethod: s.defaultInputMethod === 'timer' ? 'bar' : s.defaultInputMethod,
     workStartTime: s.workStartTime,
     saturday: s.holidayRule.saturday,
     sunday: s.holidayRule.sunday,
@@ -81,7 +73,6 @@ export function SettingsPage() {
       periodStartDay: Math.min(28, Math.max(1, Math.round(num(draft.periodStartDay, 1)))),
       paidLeaveHours: num(draft.paidLeaveHours, settings.paidLeaveHours),
       breakMinutes: Math.max(0, Math.round(num(draft.breakMinutes, settings.breakMinutes))),
-      defaultInputMethod: draft.defaultInputMethod,
       workStartTime: draft.workStartTime,
       holidayRule: {
         saturday: draft.saturday,
@@ -203,18 +194,6 @@ export function SettingsPage() {
             勤務日の実働から毎日この昼休みを差し引きます。中抜け（外出・離席）はこれとは別で、
             入力画面で時間帯を分けるとその間が除外されます（半休の日は昼休みを引きません）。
           </p>
-        </div>
-
-        <div className="field">
-          <label>既定の入力方式</label>
-          <select
-            value={draft.defaultInputMethod}
-            onChange={(e) => set('defaultInputMethod', e.target.value as InputMethod)}
-          >
-            <option value="bar">バー選択</option>
-            <option value="time">時刻入力</option>
-            <option value="total">合計入力</option>
-          </select>
         </div>
 
         <div className="section-head" style={{ margin: '6px 0 6px' }}>勤務時間のみなし</div>
