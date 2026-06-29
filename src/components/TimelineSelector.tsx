@@ -5,9 +5,10 @@ import { useEffect, useRef, useState } from 'react';
 // Window is 6:00–24:00 in 30-minute slots. (Use manual input for earlier hours
 // or overnight work.)
 const WIN_START = 6 * 60; // 06:00
-const SLOT = 30;
-const N = (24 * 60 - WIN_START) / SLOT; // 36 slots
-const HOURS = N / 2; // 18 hour columns (6:00–24:00)
+const SLOT = 15; // 15-minute slots
+const N = (24 * 60 - WIN_START) / SLOT; // 72 slots
+const PER_HOUR = 60 / SLOT; // 4 slots per hour
+const HOURS = (24 * 60 - WIN_START) / 60; // 18 hour columns (6:00–24:00)
 
 interface TimePair {
   start: string;
@@ -119,7 +120,7 @@ export function TimelineSelector({
         onPointerCancel={endDrag}
       >
         {slots.map((on, i) => (
-          <div key={i} className={`tl-slot${on ? ' on' : ''}${i % 2 === 0 ? ' hour' : ''}`} />
+          <div key={i} className={`tl-slot${on ? ' on' : ''}${i % PER_HOUR === 0 ? ' hour' : ''}`} />
         ))}
       </div>
       <div className="tl-ticks">
