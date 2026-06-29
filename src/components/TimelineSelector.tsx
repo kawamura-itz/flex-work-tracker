@@ -119,9 +119,10 @@ export function TimelineSelector({
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
       >
-        {slots.map((on, i) => (
-          <div key={i} className={`tl-slot${on ? ' on' : ''}${i % PER_HOUR === 0 ? ' hour' : ''}`} />
-        ))}
+        {slots.map((on, i) => {
+          const grid = i % PER_HOUR === 0 ? ' hour' : i % (PER_HOUR / 2) === 0 ? ' half' : '';
+          return <div key={i} className={`tl-slot${on ? ' on' : ''}${grid}`} />;
+        })}
       </div>
       <div className="tl-ticks">
         {Array.from({ length: HOURS }, (_, k) => (

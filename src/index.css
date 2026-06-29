@@ -324,17 +324,27 @@ body {
 }
 .tl-slot {
   flex: 1 1 0;
-  border-left: 1px solid #eef0f4;
+  border-left: 1px solid #f0f2f6; /* 15-min: very light */
   pointer-events: none;
 }
 .tl-slot:first-child {
   border-left: none;
 }
+.tl-slot.half {
+  border-left-color: #ccd2dc; /* 30-min: medium */
+}
 .tl-slot.hour {
-  border-left: 1px solid #c7ccd6;
+  border-left-color: #8b95a6; /* 1-hour: strong */
 }
 .tl-slot.on {
   background: var(--accent);
+}
+/* Keep the 30-min / 1-hour marks visible over the selected (blue) area. */
+.tl-slot.on.half {
+  border-left-color: rgba(255, 255, 255, 0.45);
+}
+.tl-slot.on.hour {
+  border-left-color: rgba(255, 255, 255, 0.75);
 }
 .tl-ticks {
   display: flex;
