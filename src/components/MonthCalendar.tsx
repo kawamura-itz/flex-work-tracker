@@ -29,6 +29,7 @@ export function MonthCalendar({ onSelect }: { onSelect: (date: string) => void }
 
   return (
     <div className="card cal-card">
+      <div className="cal-cap">日付をタップで入力・修正</div>
       <div className="cal-head">
         {WD.map((w, i) => (
           <div key={w} className={`cal-wd ${i === 0 ? 'sun' : ''} ${i === 6 ? 'sat' : ''}`}>

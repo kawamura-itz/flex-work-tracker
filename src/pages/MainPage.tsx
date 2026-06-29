@@ -78,9 +78,6 @@ export function MainPage() {
         </aside>
 
         <main className="home-main">
-          <div className="section-head" style={{ marginTop: 0 }}>
-            カレンダー（日付をタップで入力・修正）
-          </div>
           <MonthCalendar onSelect={setEditDate} />
         </main>
       </div>

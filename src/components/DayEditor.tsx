@@ -217,13 +217,25 @@ export function DayEditor({ date, onClose }: { date: string; onClose?: () => voi
         </b>
       </div>
 
-      <div className="card__label" style={{ marginLeft: 2 }}>区分</div>
-      <div className="type-grid">
-        {(Object.keys(TYPE_LABELS) as DayType[]).map((t) => (
-          <button key={t} className={type === t ? 'active' : ''} onClick={() => setType(t)}>
-            {TYPE_LABELS[t]}
-          </button>
-        ))}
+      <div className="type-row">
+        <button
+          className={`type-main ${type === 'work' ? 'active' : ''}`}
+          onClick={() => setType('work')}
+        >
+          勤務
+        </button>
+        <select
+          className="type-select"
+          value={type === 'work' ? '' : type}
+          onChange={(e) => setType((e.target.value || 'work') as DayType)}
+        >
+          <option value="">有給・休みなど…</option>
+          {(['paidLeave', 'halfLeave', 'holiday', 'adjustOff', 'absence'] as DayType[]).map((t) => (
+            <option key={t} value={t}>
+              {TYPE_LABELS[t]}
+            </option>
+          ))}
+        </select>
       </div>
 
       {type === 'paidLeave' && (
