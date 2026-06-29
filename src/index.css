@@ -789,23 +789,34 @@ body {
     margin-top: 0;
   }
 
-  /* Home: status column on the left, calendar on the right. */
+  /* Home: status column on the left, calendar on the right — equal heights. */
   .home-grid {
     display: grid;
     grid-template-columns: 340px 1fr;
     gap: 24px;
-    align-items: start;
+    align-items: stretch;
     max-width: 1000px;
   }
   .home-side {
     margin-bottom: 0;
-    position: sticky;
-    top: 28px;
   }
-
-  /* Bigger calendar cells when there's room. */
+  /* The calendar card fills the column so its bottom lines up with the side. */
+  .home-main {
+    display: flex;
+    flex-direction: column;
+  }
+  .cal-card {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+  }
+  .cal-grid {
+    flex: 1 1 auto;
+    grid-auto-rows: 1fr;
+  }
   .cal-cell {
-    min-height: 64px;
+    aspect-ratio: auto;
+    min-height: 56px;
     padding: 6px;
   }
   .cal-d {

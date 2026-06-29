@@ -37,11 +37,12 @@ export interface Settings {
   /** 有給1日のみなし時間（時間）。通常は dailyStandardHours と同じ。 */
   paidLeaveHours: number;
   /**
-   * 昼休みなどの休憩（分）。在社時間（開始〜終了の1本）からこの分を差し引いて
-   * 実働を出す。時間帯を複数に分けて入力した場合は、間が休憩とみなされるので
-   * この控除は行わない。0 なら控除なし。
+   * 昼休みの長さ（分）。1日に必要な休憩量。入力した中抜け（時間帯の隙間）が
+   * この量に充当され、足りない分だけ在社時間から自動控除される（0 なら控除なし）。
    */
   breakMinutes: number;
+  /** 既定の昼休み開始時刻（'HH:mm'）。新規入力時にこの時間帯を抜いて表示する。 */
+  lunchStart: string;
   defaultInputMethod: InputMethod;
   /** 既定の勤務開始時刻（'HH:mm'）。入力時の初期値に使う。 */
   workStartTime: string;
@@ -107,6 +108,7 @@ export const DEFAULT_SETTINGS: Settings = {
   holidayRule: { saturday: true, sunday: true, nationalHoliday: true },
   paidLeaveHours: 8,
   breakMinutes: 60,
+  lunchStart: '12:00',
   defaultInputMethod: 'bar',
   workStartTime: '09:00',
   assumeStandardForElapsed: true,

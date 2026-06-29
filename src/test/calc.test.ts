@@ -25,15 +25,28 @@ function work(date: string, minutes: number): DayRecord {
 describe('deriveTotalMinutes', () => {
   const seg = (start: string, end: string) => ({ start, end });
 
-  it('a single span subtracts the lunch break (in-to-out includes lunch)', () => {
-    const segs = [seg('2026-06-01T09:00', '2026-06-01T18:00')]; // 9h gross
+  it('a single span deducts the full lunch (no gaps to count)', () => {
+    const segs = [seg('2026-06-01T09:00', '2026-06-01T18:00')]; // 9h gross, gaps 0
+    expect(deriveTotalMinutes(segs, 60)).toBe(8 * 60); // -60 lunch
+  });
+
+  it('a gap covering the lunch means no extra deduction (案A)', () => {
+    // 12:00-13:00 carved out as lunch: 3h + 5h = 8h, gap 60 satisfies the 60 lunch
+    const segs = [seg('2026-06-01T09:00', '2026-06-01T12:00'), seg('2026-06-01T13:00', '2026-06-01T18:00')];
     expect(deriveTotalMinutes(segs, 60)).toBe(8 * 60);
   });
 
-  it('lunch is still deducted with multiple segments; the gap (中抜け) is excluded', () => {
-    // 5h + 3h = 8h in-office; gap 14:00-15:00 is 中抜け (excluded); lunch still −60
-    const segs = [seg('2026-06-01T09:00', '2026-06-01T14:00'), seg('2026-06-01T15:00', '2026-06-01T18:00')];
-    expect(deriveTotalMinutes(segs, 60)).toBe(7 * 60);
+  it('stepping out covers lunch — gap absorbs it, only the excess reduces work', () => {
+    // out 13:00-14:30 (90m); lunch 60 is absorbed, 30m beyond lunch reduces work
+    const segs = [seg('2026-06-01T09:00', '2026-06-01T13:00'), seg('2026-06-01T14:30', '2026-06-01T18:00')];
+    expect(deriveTotalMinutes(segs, 60)).toBe(7 * 60 + 30); // 4h + 3.5h = 7.5h, no extra deduct
+  });
+
+  it('a short gap only partially covers the lunch; the shortfall is deducted', () => {
+    // gap 30m, lunch 60 → deduct 30 from gross
+    const segs = [seg('2026-06-01T09:00', '2026-06-01T12:00'), seg('2026-06-01T12:30', '2026-06-01T18:00')];
+    // gross 3h + 5.5h = 8.5h, deduct 30 → 8h
+    expect(deriveTotalMinutes(segs, 60)).toBe(8 * 60);
   });
 
   it('break of 0 means no deduction', () => {
@@ -43,7 +56,7 @@ describe('deriveTotalMinutes', () => {
 
   it('handles overnight segments via date-bearing datetimes', () => {
     const segs = [seg('2026-06-01T22:00', '2026-06-02T02:30')]; // 4.5h across midnight
-    expect(deriveTotalMinutes(segs, 30)).toBe(4 * 60); // 4.5h - 30m
+    expect(deriveTotalMinutes(segs, 30)).toBe(4 * 60); // 4.5h - 30m (no gaps)
   });
 
   it('never goes negative and ignores a running (open) segment', () => {

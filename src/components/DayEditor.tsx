@@ -2,7 +2,7 @@ import { format } from 'date-fns';
 import { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../state/AppContext';
 import { deleteDay, getDay, putDay } from '../db';
-import { deriveTotalMinutes } from '../domain/calc';
+import { deriveTotalMinutes, workedBreakdown } from '../domain/calc';
 import { isHoliday } from '../domain/holidays';
 import { fmtHM, fmtSignedHM, hoursToMinutes, parseDay } from '../domain/time';
 import { TimelineSelector } from './TimelineSelector';
@@ -34,17 +34,35 @@ function pad(n: number): string {
   return String(n).padStart(2, '0');
 }
 
+function timeToMin(t: string): number {
+  const [h, m] = t.split(':').map(Number);
+  return h * 60 + m;
+}
+
 /** Add minutes to an 'HH:mm' string, clamped to within the day. */
 function addToTime(time: string, minutes: number): string {
-  const [h, m] = time.split(':').map(Number);
-  const total = Math.min(23 * 60 + 59, Math.max(0, h * 60 + m + minutes));
+  const total = Math.min(23 * 60 + 59, Math.max(0, timeToMin(time) + minutes));
   return `${pad(Math.floor(total / 60))}:${pad(total % 60)}`;
 }
 
-/** A standard-day pair: a single in-to-out span that includes the break. */
-function standardPair(settings: Settings): TimePair {
-  const span = hoursToMinutes(settings.dailyStandardHours) + settings.breakMinutes;
-  return { start: settings.workStartTime, end: addToTime(settings.workStartTime, span) };
+/**
+ * Default work day: the configured hours with the lunch carved out at the
+ * configured window (e.g. 09:00–12:00 / 13:00–18:00). Worked time = standard.
+ */
+function standardPairs(settings: Settings): TimePair[] {
+  const stdMin = hoursToMinutes(settings.dailyStandardHours);
+  const ws = settings.workStartTime;
+  const lunch = settings.breakMinutes;
+  const morning = timeToMin(settings.lunchStart) - timeToMin(ws);
+  if (lunch <= 0 || morning <= 0 || morning >= stdMin) {
+    // No lunch window in range → single span that includes the break.
+    return [{ start: ws, end: addToTime(ws, stdMin + Math.max(0, lunch)) }];
+  }
+  const lunchEnd = addToTime(settings.lunchStart, lunch);
+  return [
+    { start: ws, end: settings.lunchStart },
+    { start: lunchEnd, end: addToTime(lunchEnd, stdMin - morning) },
+  ];
 }
 
 function segmentsToPairs(segments: Segment[], fallbackStart: string): TimePair[] {
@@ -83,7 +101,7 @@ export function DayEditor({ date, onClose }: { date: string; onClose?: () => voi
   const [type, setType] = useState<DayType>(holiday ? 'holiday' : 'work');
   // New days always open in the bar; existing records open in how they were entered.
   const [mode, setMode] = useState<EditMode>('bar');
-  const [pairs, setPairs] = useState<TimePair[]>(() => [standardPair(settings)]);
+  const [pairs, setPairs] = useState<TimePair[]>(() => standardPairs(settings));
   const [totalHours, setTotalHours] = useState<string>(String(settings.dailyStandardHours));
   const [note, setNote] = useState('');
   const [loaded, setLoaded] = useState(false);
@@ -112,14 +130,19 @@ export function DayEditor({ date, onClose }: { date: string; onClose?: () => voi
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [date]);
 
-  // Half-day work has no lunch break; full work days deduct the fixed lunch.
+  // Half-day work has no lunch break; full work days use the lunch requirement.
   const effectiveBreak = type === 'halfLeave' ? 0 : settings.breakMinutes;
+
+  const breakdown = useMemo(() => {
+    if (!HAS_SEGMENTS.includes(type) || mode === 'total') return null;
+    return workedBreakdown(pairsToSegments(date, pairs), effectiveBreak);
+  }, [type, mode, pairs, date, effectiveBreak]);
 
   const previewMinutes = useMemo(() => {
     if (!HAS_SEGMENTS.includes(type)) return 0;
     if (mode === 'total') return Math.round(parseFloat(totalHours || '0') * 60);
-    return deriveTotalMinutes(pairsToSegments(date, pairs), effectiveBreak);
-  }, [type, mode, totalHours, pairs, date, effectiveBreak]);
+    return breakdown ? breakdown.worked : 0;
+  }, [type, mode, totalHours, breakdown]);
 
   // Contribution this record would make, and its ± impact vs the standard day.
   const contribution = useMemo(() => {
@@ -303,10 +326,12 @@ export function DayEditor({ date, onClose }: { date: string; onClose?: () => voi
 
           <p className="hint">
             この日の実働: <b>{fmtHM(previewMinutes)}</b>
-            {mode !== 'total' && effectiveBreak > 0 && `（昼休み${effectiveBreak}分を差引`}
-            {mode !== 'total' && effectiveBreak > 0 && pairs.length > 1 && '、中抜けは除外'}
-            {mode !== 'total' && effectiveBreak > 0 && '）'}
-            {mode !== 'total' && effectiveBreak === 0 && pairs.length > 1 && '（中抜けは除外）'}
+            {breakdown && effectiveBreak > 0 && breakdown.autoDeduct === effectiveBreak &&
+              `（昼休み${effectiveBreak}分を控除）`}
+            {breakdown && effectiveBreak > 0 && breakdown.autoDeduct === 0 &&
+              `（昼休み${effectiveBreak}分は時間帯の間で取得済み）`}
+            {breakdown && effectiveBreak > 0 && breakdown.autoDeduct > 0 && breakdown.autoDeduct < effectiveBreak &&
+              `（昼休み${effectiveBreak}分のうち${breakdown.autoDeduct}分を控除）`}
           </p>
         </>
       )}

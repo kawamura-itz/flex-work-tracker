@@ -2,7 +2,8 @@
 import type { DayRecord, Segment, Settings } from '../types';
 import { isHoliday, type HolidayContext } from './holidays';
 import { eachDayStr, type PeriodRange } from './period';
-import { addDaysStr, hoursToMinutes, segmentMinutes } from './time';
+import { parseISO } from 'date-fns';
+import { addDaysStr, hoursToMinutes } from './time';
 
 /**
  * Up to which date empty past weekdays are assumed standard (みなし).
@@ -34,16 +35,38 @@ export function classifyDay(
   return 'unconfirmed';
 }
 
+export interface WorkedBreakdown {
+  gross: number; // sum of worked spans (minutes)
+  gaps: number; // total time between spans (中抜け＋昼休みの隙間)
+  autoDeduct: number; // lunch shortfall deducted from gross
+  worked: number; // 実働 = gross - autoDeduct
+}
+
 /**
- * Net worked minutes from time segments (実働).
- * The segments are in-office spans (lunch included). `breakMinutes` is the fixed
- * lunch break and is always subtracted. 中抜け (stepping out) is a different
- * thing: enter it as a gap between two segments — that gap is excluded because
- * we only sum the spans, and the lunch is still deducted on top.
+ * Worked minutes with the lunch handled as a required break (案A).
+ * The day needs `breakMinutes` of break (lunch). Any gap between segments
+ * (中抜け or a lunch you carved out) counts toward that requirement; only the
+ * shortfall is deducted from the worked spans. So taking lunch during a 中抜け
+ * isn't double-counted, and a single in-to-out span still loses its lunch.
  */
+export function workedBreakdown(segments: Segment[], breakMinutes: number): WorkedBreakdown {
+  const spans = segments
+    .filter((s) => s.end)
+    .map((s) => [parseISO(s.start).getTime(), parseISO(s.end as string).getTime()] as const)
+    .filter(([a, b]) => b > a)
+    .sort((x, y) => x[0] - y[0]);
+  let gross = 0;
+  for (const [a, b] of spans) gross += (b - a) / 60000;
+  let gaps = 0;
+  for (let i = 1; i < spans.length; i++) gaps += Math.max(0, (spans[i][0] - spans[i - 1][1]) / 60000);
+  const autoDeduct = Math.max(0, breakMinutes - gaps);
+  const worked = Math.max(0, Math.round(gross - autoDeduct));
+  return { gross: Math.round(gross), gaps: Math.round(gaps), autoDeduct: Math.round(autoDeduct), worked };
+}
+
+/** 実働 minutes (案A). See workedBreakdown. */
 export function deriveTotalMinutes(segments: Segment[], breakMinutes: number): number {
-  const gross = segments.reduce((sum, s) => sum + segmentMinutes(s.start, s.end), 0);
-  return Math.max(0, gross - breakMinutes);
+  return workedBreakdown(segments, breakMinutes).worked;
 }
 
 /** Minutes a single day's record contributes toward the required total (§4.2). */

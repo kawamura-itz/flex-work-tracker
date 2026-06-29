@@ -23,6 +23,7 @@ interface Draft {
   periodStartDay: string;
   paidLeaveHours: string;
   breakMinutes: string;
+  lunchStart: string;
   workStartTime: string;
   saturday: boolean;
   sunday: boolean;
@@ -38,6 +39,7 @@ function fromSettings(s: Settings): Draft {
     periodStartDay: String(s.periodStartDay),
     paidLeaveHours: String(s.paidLeaveHours),
     breakMinutes: String(s.breakMinutes),
+    lunchStart: s.lunchStart,
     workStartTime: s.workStartTime,
     saturday: s.holidayRule.saturday,
     sunday: s.holidayRule.sunday,
@@ -73,6 +75,7 @@ export function SettingsPage() {
       periodStartDay: Math.min(28, Math.max(1, Math.round(num(draft.periodStartDay, 1)))),
       paidLeaveHours: num(draft.paidLeaveHours, settings.paidLeaveHours),
       breakMinutes: Math.max(0, Math.round(num(draft.breakMinutes, settings.breakMinutes))),
+      lunchStart: draft.lunchStart,
       workStartTime: draft.workStartTime,
       holidayRule: {
         saturday: draft.saturday,
@@ -181,20 +184,27 @@ export function SettingsPage() {
           />
         </div>
 
-        <div className="field">
-          <label>休憩（昼休み）の時間（分）</label>
-          <input
-            type="number"
-            step="5"
-            min="0"
-            value={draft.breakMinutes}
-            onChange={(e) => set('breakMinutes', e.target.value)}
-          />
-          <p className="hint" style={{ marginTop: 6, marginBottom: 0 }}>
-            勤務日の実働から毎日この昼休みを差し引きます。中抜け（外出・離席）はこれとは別で、
-            入力画面で時間帯を分けるとその間が除外されます（半休の日は昼休みを引きません）。
-          </p>
+        <div className="inline-fields">
+          <div className="field" style={{ marginBottom: 0 }}>
+            <label>昼休みの開始時刻</label>
+            <input type="time" value={draft.lunchStart} onChange={(e) => set('lunchStart', e.target.value)} />
+          </div>
+          <div className="field" style={{ marginBottom: 0 }}>
+            <label>昼休みの長さ（分）</label>
+            <input
+              type="number"
+              step="5"
+              min="0"
+              value={draft.breakMinutes}
+              onChange={(e) => set('breakMinutes', e.target.value)}
+            />
+          </div>
         </div>
+        <p className="hint" style={{ marginTop: 6 }}>
+          新規入力時はこの昼休みを抜いた状態（例 9:00–12:00 / 13:00–18:00）で表示します。
+          中抜け（外出・離席）で昼休みを取った日は、その分が昼休みに充当され二重に引かれません。
+          昼休みを取らずに通しで働いた日は自動でこの分を控除します（半休の日は引きません）。
+        </p>
 
         <div className="section-head" style={{ margin: '6px 0 6px' }}>勤務時間のみなし</div>
         <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0 8px' }}>
