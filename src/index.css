@@ -652,17 +652,31 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 10px;
   background: #fff;
   border: 1px solid var(--line);
   border-radius: 12px;
-  padding: 12px 14px;
+  padding: 0 14px;
+  /* Fixed height so the box never resizes when the value text (and its script)
+     changes — prevents the whole editor from shifting. */
+  min-height: 56px;
   margin-bottom: 14px;
   font-size: 0.84rem;
+  line-height: 1.4;
   color: var(--ink-soft);
 }
+/* Keep the label fixed and the value on one line so the box height never
+   changes as the value text (±0（所定どおり） / -15m / +1h) changes. */
+.impact-readout > span:first-child {
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+}
 .impact-readout b {
+  flex: 0 0 auto;
   font-size: 1.2rem;
   color: var(--ink);
+  white-space: nowrap;
 }
 .impact-readout b.surplus {
   color: var(--surplus);
